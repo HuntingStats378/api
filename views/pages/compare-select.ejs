@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<%- include('../partials/head.ejs', { title: "Compare Select" }); %>
+	</head>
+	<body class="bg-neutral-900 text-white flex h-screen flex-col">
+		<%- include("../partials/navbar.ejs") %>
+		<main class="flex-grow p-4">
+			<div class="mx-auto max-w-3xl">
+				<div class="flex flex-col items-center justify-center gap-3">
+					<div class="w-full grid grid-cols-1 gap-3 md:grid-cols-2">
+						<div class="flex flex-col gap-2 rounded-lg bg-neutral-800 p-4">
+							<select
+								id="select1"
+								class="w-full rounded-lg border-none bg-neutral-700 px-4 py-3 focus:ring-0"
+							>
+								<% colors.forEach(color => { %>
+									<option value="<%= color.id %>">
+										<%= color.name %>	
+									</option>
+								<% }); %>				
+							</select>
+						</div>
+						<div class="flex flex-col gap-2 rounded-lg bg-neutral-800 p-4">
+							<select
+								id="select2"
+								class="w-full rounded-lg border-none bg-neutral-700 px-4 py-3 focus:ring-0"
+							>
+								<% colors.forEach(color => { %>
+									<option value="<%= color.id %>">
+										<%= color.name %>	
+									</option>
+								<% }); %>				
+							</select>
+						</div>
+					</div>
+					<button
+						class="w-full rounded-lg bg-neutral-800 px-4 py-3 text-center hover:opacity-80"
+						onclick="compare()"
+					>
+						LET&apos;S COMPARE!
+					</button>
+				</div>
+			</div>
+		</main>
+	</body>
+	<script>
+		function compare() {
+			window.location.href = `/compare/${document.getElementById("select1").value}/${document.getElementById("select2").value}`
+		}
+	</script>
+</html>

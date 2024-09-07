@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<%- include('../partials/head.ejs', { title: `${color1.name} vs ${color2.name}` }); %>
+		<link rel="stylesheet" href="/odometer.css" />
+		<script src="/odometer.js"></script>
+		<script src="https://code.highcharts.com/10.3.3/highcharts.js"></script>
+	</head>
+	<body class="bg-neutral-900 text-white flex h-screen flex-col">
+		<%- include("../partials/navbar.ejs") %>
+		<main class="flex-grow p-4">
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+				<div class="bg-neutral-800 rounded-lg p-4 flex flex-col items-center justify-center">
+					<h1 class="text-xl" style="color: <%= color1.hex %>">
+						<%= color1.name %>	
+					</h1>
+					<span
+						id="count1"
+						class="odometer mt-2 w-full text-center text-5xl leading-[1em] sm:text-6xl md:text-7xl font-roboto"
+					><%= color1.clicks %></span>
+					<div class="mt-2 flex gap-2">
+						<button
+							onclick="add1()"
+							class="px-2 py-1 rounded-lg bg-green-500 hover:bg-green-700 transition-all"
+						>
+							+1
+						</button>
+						<button
+							onclick="subtract1()"	
+							class="px-2 py-1 rounded-lg bg-red-500 hover:bg-red-700 transition-all"
+						>
+							-1
+						</button>
+					</div>
+				</div>
+				<div class="bg-neutral-800 rounded-lg p-4 flex flex-col items-center justify-center">
+					<h1 class="text-xl" style="color: <%= color2.hex %>">
+						<%= color2.name %>
+					</h1>
+					<span
+						id="count2"
+						class="odometer mt-2 w-full text-center text-5xl leading-[1em] sm:text-6xl md:text-7xl font-roboto"
+					><%= color2.clicks %></span>
+					<div class="mt-2 flex gap-2">
+						<button
+							onclick="add2()"
+							class="px-2 py-1 rounded-lg bg-green-500 hover:bg-green-700 transition-all"
+						>
+							+1
+						</button>
+						<button
+							onclick="subtract2()"
+							class="px-2 py-1 rounded-lg bg-red-500 hover:bg-red-700 transition-all"
+						>
+							-1
+						</button>
+					</div>
+				</div>
+			</div>
+			<div class="mt-4 rounded-lg bg-neutral-800 p-4">
+				<span
+					id="difference"
+					class="odometer w-full text-center text-4xl leading-[1em] font-roboto"
+				><%= color1.clicks - color2.clicks %></span>
+				<p class="mt-1 text-center text-xs">Difference</p>
+			</div>
+			<div class="mt-4 bg-neutral-800 rounded-lg p-4 py-8">
+				<div id="chart"></div>
+			</div>
+		</main>
+	</body>
+	<script>
+		const chart = new Highcharts.chart({
+			chart: {
+				renderTo: "chart",
+				type: "line",
+				backgroundColor: "transparent",
+				plotBorderColor: "transparent",
+				animation: false,
+			},
+			title: {
+				text: "",
+			},
+			xAxis: {
+				type: "datetime",
+				tickPixelInterval: 500,
+				labels: {
+					style: {
+						color: "#858585",
+					},
+				},
+				gridLineColor: "#858585",
+				lineColor: "#858585",
+				minorGridLineColor: "#858585",
+				tickColor: "#858585",
+				title: {
+					style: {
+						color: "#858585",
+					},
+				},
+			},
+			yAxis: {
+				title: {
+					text: "",
+				},
+				labels: {
+					style: {
+						color: "#858585",
+					},
+				},
+				gridLineColor: "#858585",
+				lineColor: "#858585",
+				minorGridLineColor: "#858585",
+				tickColor: "#858585",
+			},
+			credits: {
+				enabled: true,
+				text: "Color Battles",
+				href: "/",
+			},
+			tooltip: {
+				shared: true,
+				formatter: function () {
+					// @ts-ignore
+					var index = this.points[0].series.xData.indexOf(this.x);
+					// @ts-ignore
+					var lastY = this.points[0].series.yData[index - 1];
+					// @ts-ignore
+					var dif = this.y - lastY;
+					var r =
+						// @ts-ignore
+						Highcharts.dateFormat("%A %b %e, %H:%M:%S", new Date(this.x)) +
+						'<br><span style="color:black">\u25CF </span>' +
+						// @ts-ignore
+						this.points[0].series.name +
+						": <b>" +
+						// @ts-ignore
+						Highcharts.numberFormat(this.y, 0);
+					if (dif < 0) {
+						r +=
+							'<span style="color:#ff0000;font-weight:bold;"> (' +
+							Highcharts.numberFormat(dif, 0) +
+							")</span>";
+					}
+					if (dif > 0) {
+						r +=
+							'<span style="color:#00bb00;font-weight:bold;"> (+' +
+							Highcharts.numberFormat(dif, 0) +
+							")</span>";
+					}
+					return r;
+				},
+			},
+			series: [
+				{
+					showInLegend: false,
+					name: "Difference",
+					marker: { enabled: false },
+					color: "white",
+					lineColor: "white",
+					lineWidth: 4,
+				},
+			],
+		});
+
+		function add1() {
+			fetch("/api/color/<%= color1.id %>", {
+				method: "POST"
+			})
+		}
+		
+		function add2() {
+			fetch("/api/color/<%= color2.id %>", {
+				method: "POST"
+			})
+		}
+
+		function subtract1() {
+			fetch("/api/color/<%= color1.id %>", {
+				method: "DELETE"
+			})
+		}
+
+		function subtract2() {
+			fetch("/api/color/<%= color2.id %>", {
+				method: "DELETE"
+			})
+		}
+
+		setInterval(() => {
+			fetch("/api/color/<%= color1.id %>").then((res) => res.json()).then((data1) => {
+				fetch("/api/color/<%= color2.id %>").then((res) => res.json()).then((data2) => {
+					document.getElementById("count1").textContent = data1.clicks;
+					document.getElementById("count2").textContent = data2.clicks;
+					document.getElementById("difference").textContent = data1.clicks - data2.clicks;
+
+					if (chart.series[0].points.length >= 3600)
+						chart.series[0].data[0].remove();
+					chart.series[0].addPoint([Date.now(), data1.clicks - data2.clicks]);
+				})
+			})	
+		}, 2000)
+	</script>
+</html>
