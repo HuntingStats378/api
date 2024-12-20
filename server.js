@@ -15,14 +15,14 @@ app.get("/api/youtube-subcount/:channelId", async (req, res) => {
     const response = await axios.get(
       `https://mixerno.space/api/youtube-channel-counter/user/${channelId}`
     );
-    const subCount = response.counts[0].count;
-    const totalViews = response.counts[3].count;
-    const apiViews = response.counts[4].count;
-    const apiSubCount = response.counts[2].count;
-    const videos = response.counts[5].count;
-    const channelLogo = response.user[1].count;
-    const channelName = response.user[0].count;
-    const channelBanner = response.user[2].count;
+    const subCount = response.data.counts[0].count;
+    const totalViews = response.data.counts[3].count;
+    const apiViews = response.data.counts[4].count;
+    const apiSubCount = response.data.counts[2].count;
+    const videos = response.data.counts[5].count;
+    const channelLogo = response.data.user[1].count;
+    const channelName = response.data.user[0].count;
+    const channelBanner = response.data.user[2].count;
 
     res.json({
       stats: { subCount, totalViews, apiSubCount, videos, apiViews },
