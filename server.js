@@ -7,7 +7,7 @@ const app = express();
 app.use(cors());
 
 // API route to get YouTube live subscriber count
-app.get("/api/youtube-subcount/:channelId", async (req, res) => {
+app.get("/api/youtube/channel/:channelId", async (req, res) => {
   const { channelId } = req.params;
 
   try {
@@ -34,7 +34,7 @@ app.get("/api/youtube-subcount/:channelId", async (req, res) => {
   }
 });
 
-app.get("/api/youtube-subcount/studio/:channelId", async (req, res) => {
+app.get("/api/youtube/channel/:channelId/studio", async (req, res) => {
   const { channelId } = req.params;
 
   try {
@@ -65,7 +65,7 @@ app.get("/api/youtube-subcount/studio/:channelId", async (req, res) => {
   }
 });
 
-app.get("/api/mrbeast/youtube-subcount/", async (req, res) => {
+app.get("/api/youtube/channel/mrbeast", async (req, res) => {
   try {
     // Fetch data from the external API
     const response = await axios.get(`https://mrb.toasted.dev/count`);
