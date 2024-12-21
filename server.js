@@ -43,17 +43,17 @@ app.get("/api/youtube/channel/:channelId/studio", async (req, res) => {
       `https://cors.stats100.xyz/https://studio.nia-statistics.com/api/channel/${channelId}`
     );
     const respons2e = await axios.get(
-      `https://backend.mixerno.space/api/youtube/estv3/${channelId}`
+      `https://mixerno.space/api/youtube-channel-counter/user/${channelId}`
     );
     const info = await response.json();
     const subCount = info.channels.counts[2].count;
     const viewCount = info.channels.counts[1].count;
-    const apiSubCount = respons2e.data.items[0].statistics.subscriberCountAPI;
-    const videos = respons2e.data.items[0].statistics.videoCount;
-    const apiViews = respons2e.data.items[0].statistics.viewCountAPI;
-    const channelLogo = info.currentChannels.image;
-    const channelName = respons2e.data.items[0].snippet.title;
-    const channelBanner = respons2e.data.items[0].brandingSettings.image;
+    const apiSubCount = respons2e.data.counts[2].count;
+    const videos = respons2e.data.counts[5].count;
+    const apiViews = respons2e.data.counts[4].count;
+    const channelLogo = respons2e.data.user[1].count;
+    const channelName = respons2e.data.user[0].count;
+    const channelBanner = respons2e.data.user[2].count;
 
     res.json({
       stats: { subCount, viewCount, apiSubCount, videos, apiViews },
