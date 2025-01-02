@@ -180,7 +180,7 @@ app.get("/api/chat/countdown/:offset", async (req, res) => {
 });
 
 // API route to fetch world population
-app.get("/api/world-population", async (req, res) => {
+app.get("/api/world/population/worldometers", async (req, res) => {
     try {
         const population = await fetchWorldPopulation();
         res.json({ population });
