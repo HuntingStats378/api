@@ -1,48 +1,11 @@
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
-const puppeteer = require("puppeteer");
 const app = express();
 app.use(cors());
 
 function padZero(number) {
     return String(number).padStart(2, '0');
-}
-
-async function fetchWorldPopulation() {
-    const browser = await puppeteer.launch({
-        headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-        ],
-    });
-    const page = await browser.newPage();
-
-    try {
-        // Navigate to the Worldometer population page
-        await page.goto('https://www.worldometers.info/world-population', {
-            waitUntil: 'domcontentloaded',
-        });
-
-        // Wait for the population counter to load
-        await page.waitForSelector('.rts-counter');
-
-        // Scrape the population number
-        const population = await page.evaluate(() => {
-            const populationElements = document.querySelectorAll('.rts-counter .rts-nr-int');
-            const populationString = Array.from(populationElements).map(el => el.textContent).join('');
-            return parseInt(populationString, 10);
-        });
-
-        console.log(`Current Population: ${population}`);
-        await browser.close();
-        return population;
-    } catch (error) {
-        console.error("Error scraping population:", error);
-        await browser.close();
-        throw error;
-    }
 }
 
 // API route to get YouTube live subscriber count
@@ -177,17 +140,6 @@ app.get("/api/chat/countdown/:offset", async (req, res) => {
     console.error(error);
     res.status(500).send("Failed to fetch information");
   }
-});
-
-// API route to fetch world population
-app.get("/api/world/population/worldometers", async (req, res) => {
-    try {
-        const population = await fetchWorldPopulation();
-        res.json({ population });
-    } catch (error) {
-        console.error("Error in fetching population:", error);
-        res.status(500).json({ error: "Failed to fetch population." });
-    }
 });
 
 module.exports = app;
