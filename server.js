@@ -8,6 +8,10 @@ function padZero(number) {
     return String(number).padStart(2, '0');
 }
 
+function numberWithCommas(x) {
+  return x.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
+}
+
 // API route to get YouTube live subscriber count
 app.get("/api/youtube/channel/:channelId", async (req, res) => {
   const { channelId } = req.params;
@@ -82,9 +86,9 @@ app.get("/api/chat/youtube/channel/:channelId", async (req, res) => {
     );
     const subCount = response.data.counts[0].count;
     const channelName = response.data.user[0].count;
-    const time = Math.floor(new Date(response.data.t).getTime() / 1000);
+    const time = new Date(new Date(response.data.t).getTime()).toISOString();
 
-    res.send(`${channelName} has ${subCount} subscribers! (at ${time})`);
+    res.send(`${channelName} has got estimated ${numberWithCommas(subCount)} subscribers! (${time})`);
   } catch (error) {
     console.error(error);
     res.status(500).send("Failed to fetch subscriber count");
@@ -110,9 +114,9 @@ app.get("/api/chat/youtube/channel/:channelId/studio", async (req, res) => {
 
     const subCount = studioResponse.data.channels.counts[2].count;
     const channelName = response.data.user[0].count;
-    const time = Math.floor(new Date(response.data.t).getTime() / 1000);
+    const time = new Date(new Date(response.data.t).getTime()).toISOString();
 
-    res.send(`${channelName} has ${subCount} subscribers! (at ${time} studio)`);
+    res.send(`${channelName} has got exactly ${numberWithCommas(subCount)} subscribers! (${time})`);
   } catch (error) {
     console.error(error);
     res.status(200).send("Not in studio.");
