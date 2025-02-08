@@ -12,6 +12,43 @@ function numberWithCommas(x) {
   return x.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
 }
 
+function getGoal(count2) {
+      var count = parseFloat(count2);
+      var t = parseFloat(count2);
+      if (count == null) return 0;
+      if (10 > t) return 10 - t;
+      var e = "" + t;
+      return Math.abs(
+        t -
+          (e.length > 6
+            ? 1e6 * (Math.floor(t / 1e6) + 1)
+            : (parseInt(e.charAt(0)) + 1) * Math.pow(10, e.length - 1))
+      );
+    }
+
+function getGoalText(count2) {
+      var count = parseFloat(count2);
+      var t = parseFloat(count2);
+      if (count == null) return 0;
+      if (10 > t) return 10;
+      var e = "" + t;
+      return e.length > 6
+        ? 1e6 * (Math.floor(t / 1e6) + 1)
+        : (parseInt(e.charAt(0)) + 1) * Math.pow(10, e.length - 1);
+    }
+
+function abbreviateNumber(num) {
+    if (num >= 1_000_000_000) {
+        return (num / 1_000_000_000).toFixed(2).replace(/\.?0+$/, '') + 'B';
+    } else if (num >= 1_000_000) {
+        return (num / 1_000_000).toFixed(2).replace(/\.?0+$/, '') + 'M';
+    } else if (num >= 1_000) {
+        return (num / 1_000).toFixed(2).replace(/\.?0+$/, '') + 'K';
+    } else {
+        return num.toString();
+    }
+}
+
 // API route to get YouTube live subscriber count
 app.get("/api/youtube/channel/:channelId", async (req, res) => {
   const { channelId } = req.params;
@@ -29,10 +66,12 @@ app.get("/api/youtube/channel/:channelId", async (req, res) => {
     const channelLogo = response.data.user[1].count;
     const channelName = response.data.user[0].count;
     const channelBanner = response.data.user[2].count;
+    const goalCount = getGoal(subCount);
 
-    res.json({
-      stats: { subCount, totalViews, apiSubCount, videos, apiViews },
-      info: { channelLogo, channelName, channelBanner },
+    res.json({t: new Date(),
+      counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
+      user: [channelName, channelLogo, channelBanner],
+      value: [["Subscribers", "Subscribers (EST)"],["Goal", `Subscribers to ${abbreviateNumber(getGoalText(subCount))}`],["Subscribers", "Subscribers (API)"],["Views", "Views (EST)"],["Views", "Views (API)"],["Videos", "Videos (API)"]]
     });
   } catch (error) {
     console.error(error);
@@ -46,14 +85,14 @@ app.get("/api/youtube/channel/:channelId/studio", async (req, res) => {
   try {
     // Fetch data from the external API
     const response = await fetch(
-      `https://cors.stats100.xyz/https://studio.nia-statistics.com/api/channel/${channelId}`
+      `https://api-v2.nextcounts.com/api/youtube/channel/${channelId}`
     );
     const respons2e = await axios.get(
       `https://mixerno.space/api/youtube-channel-counter/user/${channelId}`
     );
     const info = await response.json();
-    const subCount = info.channels.counts[2].count;
-    const viewCount = info.channels.counts[1].count;
+    const subCount = info.subcount;
+    const viewCount = respons2e.data.counts[3].count;
     const apiSubCount = respons2e.data.counts[2].count;
     const videos = respons2e.data.counts[5].count;
     const apiViews = respons2e.data.counts[4].count;
@@ -61,9 +100,10 @@ app.get("/api/youtube/channel/:channelId/studio", async (req, res) => {
     const channelName = respons2e.data.user[0].count;
     const channelBanner = respons2e.data.user[2].count;
 
-    res.json({
-      stats: { subCount, viewCount, apiSubCount, videos, apiViews },
-      item: { channelLogo, channelName, channelBanner },
+    res.json({t: new Date(),
+      counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
+      user: [channelName, channelLogo, channelBanner],
+      value: [["Subscribers", "Subscribers (STUDIO)"],["Goal", `Subscribers to ${abbreviateNumber(getGoalText(subCount))}`],["Subscribers", "Subscribers (API)"],["Views", "Views (EST)"],["Views", "Views (API)"],["Videos", "Videos (API)"]]
     });
   } catch (error) {
     console.error(error);
