@@ -99,6 +99,7 @@ app.get("/api/youtube/channel/:channelId/studio", async (req, res) => {
     const channelLogo = respons2e.data.user[1].count;
     const channelName = respons2e.data.user[0].count;
     const channelBanner = respons2e.data.user[2].count;
+    const goalCount = getGoal(subCount);
 
     res.json({t: new Date(),
       counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
