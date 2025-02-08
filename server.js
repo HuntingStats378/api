@@ -84,7 +84,7 @@ app.get("/api/youtube/channel/:channelId/studio", async (req, res) => {
 
   try {
     // Fetch data from the external API
-    const response = await fetch(
+    const response = await axios.get(
       `https://api-v2.nextcounts.com/api/youtube/channel/${channelId}`
     );
     const respons2e = await axios.get(
