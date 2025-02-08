@@ -92,7 +92,7 @@ app.get("/api/youtube/channel/:channelId/studio", async (req, res) => {
     );
     const info = await response.json();
     const subCount = info.subcount;
-    const viewCount = respons2e.data.counts[3].count;
+    const totalViews = respons2e.data.counts[3].count;
     const apiSubCount = respons2e.data.counts[2].count;
     const videos = respons2e.data.counts[5].count;
     const apiViews = respons2e.data.counts[4].count;
