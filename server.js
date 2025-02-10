@@ -187,6 +187,12 @@ app.get("/api/chat/countdown/:offset", async (req, res) => {
   }
 });
 
+app.get("/api/trigger", async (req, res) => {
+    try {
+        res.send("ohio");
+    }
+}
+
 module.exports = app;
 
 const PORT = process.env.PORT || 3000;
