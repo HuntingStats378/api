@@ -202,7 +202,12 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
       `https://api-v2.nextcounts.com/api/instagram/user/stats/${ids.user2}`
     );
 
-    res.json({"t": new Date(),"gap":null,
+    if ((user2.followers - user1.counts[0].count) < 0) {
+            const count = Math.abs(user2.followers - user1.counts[0].count);
+            } else
+            const count = (user2.followers - user1.counts[0].count);
+
+    res.json({"t": new Date(),"gap": count,
       counts: [[ids.platform1, ids.user1, user1.counts[0].count, user1.counts[3].count, user1.counts[5].count],[ids.platform2, ids.user2, user2.followers, user2.following, user2.posts]]
     });
   } catch (error) {
