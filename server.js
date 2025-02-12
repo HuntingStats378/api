@@ -188,31 +188,44 @@ app.get("/api/chat/countdown/:offset", async (req, res) => {
 });
 
 app.get("/api/streams/mrbeastrise", async (req, res) => {
-        try {
-    // Fetch data from the external API
-    const ids = await axios.get(
+  try {
+    // Fetch data from external API
+    const { data: ids } = await axios.get(
       `https://huntingstats378.github.io/streams/mrbeastrise/ids.json`
     );
 
-    const user1 = await axios.get(
+    if (!ids.user1 || !ids.user2) {
+      return res.status(400).json({ error: "Missing user IDs in response" });
+    }
+
+    const { data: user1 } = await axios.get(
       `https://mixerno.space/api/youtube-channel-counter/user/${ids.user1}`
     );
-            
-    const user2 = await axios.get(
+
+    const { data: user2 } = await axios.get(
       `https://api-v2.nextcounts.com/api/instagram/user/stats/${ids.user2}`
     );
 
-    if ((user2.followers - user1.counts[0].count) < 0) {
-    count = Math.abs(user2.followers - user1.counts[0].count);
-            } else
-    count = (user2.followers - user1.counts[0].count);
+    // Ensure we have valid counts
+    const user1Count = user1?.counts?.[0]?.count ?? 0;
+    const user2Followers = user2?.followers ?? 0;
+    const user2Following = user2?.following ?? 0;
+    const user2Posts = user2?.posts ?? 0;
 
-    res.json({"t": new Date(),"gap": count,
-      counts: [[ids.platform1, ids.user1, user1.counts[0].count, user1.counts[3].count, user1.counts[5].count],[ids.platform2, ids.user2, user2.followers, user2.following, user2.posts]]
+    const gap = Math.abs(user2Followers - user1Count);
+
+    res.json({
+      t: new Date(),
+      gap: gap,
+      counts: [
+        [ids.platform1, ids.user1, user1Count, user1?.counts?.[3]?.count ?? 0, user1?.counts?.[5]?.count ?? 0],
+        [ids.platform2, ids.user2, user2Followers, user2Following, user2Posts]
+      ],
     });
+
   } catch (error) {
     console.error(error);
-    res.status(500).send("Failed to fetch information");
+    res.status(500).json({ error: "Failed to fetch information" });
   }
 });
 
