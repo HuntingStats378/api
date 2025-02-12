@@ -203,7 +203,7 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
     );
 
     res.json({"t": new Date(),"gap":null,
-      counts: [[ids.platform1, ids.user1, user1.counts[0].count, user1.counts[3].count, user1.counts[5].count],[ids.platform2, ids.user2, null, null, null]]
+      counts: [[ids.platform1, ids.user1, user1.counts[0].count, user1.counts[3].count, user1.counts[5].count],[ids.platform2, ids.user2, user2.followers, user2.following, user2.posts]]
     });
   } catch (error) {
     console.error(error);
