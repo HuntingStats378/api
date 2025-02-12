@@ -205,7 +205,7 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
     const 
 
     res.json({t: new Date(),
-      counts: [[platform, id, subCount, totalViews, videos],[platform, id, subCount, totalViews, videos]]
+      counts: [[platform1, id1, count1, count2, count3],[platform, id, count4, count5, count6]]
     });
   } catch (error) {
     console.error(error);
