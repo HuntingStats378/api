@@ -68,7 +68,7 @@ app.get("/api/youtube/channel/:channelId", async (req, res) => {
     const channelBanner = response.data.user[2].count;
     const goalCount = getGoal(subCount);
 
-    res.json({t: new Date(),
+    res.json({"t": new Date(),
       counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
       user: [channelName, channelLogo, channelBanner],
       value: [["Subscribers", "Subscribers (EST)"],["Goal", `Subscribers to ${abbreviateNumber(getGoalText(subCount))}`],["Subscribers", "Subscribers (API)"],["Views", "Views (EST)"],["Views", "Views (API)"],["Videos", "Videos (API)"]]
@@ -101,7 +101,7 @@ app.get("/api/youtube/channel/:channelId/studio", async (req, res) => {
     const channelBanner = respons2e.data.user[2].count;
     const goalCount = getGoal(subCount);
 
-    res.json({t: new Date(),
+    res.json({"t": new Date(),
       counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
       user: [channelName, channelLogo, channelBanner],
       value: [["Subscribers", "Subscribers (STUDIO)"],["Goal", `Subscribers to ${abbreviateNumber(getGoalText(subCount))}`],["Subscribers", "Subscribers (API)"],["Views", "Views (EST)"],["Views", "Views (API)"],["Videos", "Videos (API)"]]
@@ -191,7 +191,7 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
         try {
     // Fetch data from the external API
     const ids = await axios.get(
-      `https://huntingstats378.github.io/streams/mrbeastrize/ids.json`
+      `https://huntingstats378.github.io/streams/mrbeastrise/ids.json`
     );
 
     const user1 = await axios.get(
@@ -202,10 +202,8 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
       `https://api-v2.nextcounts.com/api/instagram/user/stats/${ids.user2}`
     );
 
-    const 
-
-    res.json({t: new Date(),
-      counts: [[platform1, id1, count1, count2, count3],[platform, id, count4, count5, count6]]
+    res.json({"t": new Date(),"gap":null,
+      counts: [[ids.platform1, ids.user1, null, null, null],[ids.platform2, ids.user2, null, null, null]]
     });
   } catch (error) {
     console.error(error);
