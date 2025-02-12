@@ -187,6 +187,32 @@ app.get("/api/chat/countdown/:offset", async (req, res) => {
   }
 });
 
+app.get("/api/streams/mrbeastrise", async (req, res) => {
+        try {
+    // Fetch data from the external API
+    const ids = await axios.get(
+      `https://huntingstats378.github.io/streams/mrbeastrize/ids.json`
+    );
+
+    const user1 = await axios.get(
+      `https://mixerno.space/api/youtube-channel-counter/user/${ids.user1}`
+    );
+            
+    const user2 = await axios.get(
+      `https://api-v2.nextcounts.com/api/instagram/user/stats/${ids.user2}`
+    );
+
+    const 
+
+    res.json({t: new Date(),
+      counts: [[platform, id, subCount, totalViews, videos],[platform, id, subCount, totalViews, videos]]
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Failed to fetch information");
+  }
+});
+
 app.get("/api/trigger", async (req, res) => {
         res.send("ohio");
 });
