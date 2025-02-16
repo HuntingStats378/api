@@ -211,7 +211,7 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
     );
 
     // Ensure we have valid counts
-    const user1Count = mrbeast.mrbeast;
+    const user1Count = mrbeast.mrbeast ?? user1?.counts?.[0]?.count;
     const user2Followers = user2?.followers ?? 0;
     const user2Following = user2?.following ?? 0;
     const user2Posts = user2?.posts ?? 0;
