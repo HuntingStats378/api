@@ -202,12 +202,16 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
       `https://mixerno.space/api/youtube-channel-counter/user/${ids.user1}`
     );
 
+    const { data: mrbeast } = await axios.get(
+      `https://mrbeast.subscribercount.app/data`
+    );
+
     const { data: user2 } = await axios.get(
       `https://api-v2.nextcounts.com/api/instagram/user/stats/${ids.user2}`
     );
 
     // Ensure we have valid counts
-    const user1Count = user1?.counts?.[0]?.count ?? 0;
+    const user1Count = mrbeast.mrbeast;
     const user2Followers = user2?.followers ?? 0;
     const user2Following = user2?.following ?? 0;
     const user2Posts = user2?.posts ?? 0;
