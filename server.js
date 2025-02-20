@@ -49,18 +49,20 @@ function abbreviateNumber(num) {
     }
 }
 
-// API route to get YouTube live subscriber count
 app.get("/api/youtube/channel/:channelId", async (req, res) => {
   const { channelId } = req.params;
 
   try {
-    // Fetch data from the external API
+    // Fetch data from the first API
     const response = await axios.get(
       `https://mixerno.space/api/youtube-channel-counter/user/${channelId}`
     );
+
+    // Fetch data from the second API
     const respons2e = await axios.get(
       `https://api-v2.nextcounts.com/api/youtube/channel/${channelId}`
     );
+
     const subCount = response.data.counts[0].count;
     const totalViews = response.data.counts[3].count;
     const apiViews = response.data.counts[4].count;
@@ -71,30 +73,60 @@ app.get("/api/youtube/channel/:channelId", async (req, res) => {
     const channelBanner = response.data.user[2].count;
     const goalCount = getGoal(subCount);
 
-      if (respons2e.data.verifiedSubCount == true) {
-    res.json({"t": new Date(),
-      counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
-      user: [channelName, channelLogo, channelBanner],
-      value: [["Subscribers", "Subscribers (EST)"],["Goal", `Subscribers to ${abbreviateNumber(getGoalText(subCount))}`],["Subscribers", "Subscribers (API)"],["Views", "Views (EST)"],["Views", "Views (API)"],["Videos", "Videos (API)"]],
-      studio: respons2e.data.subcount
-    })} else if (channelId == "UCX6OQ3DkcsbYNE6H8uQQuVA") {
-    const mrbeast = await axios.get(`https://mrbeast.subscribercount.app/data`)
-    res.json({"t": new Date(),
-      counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
-      user: [channelName, channelLogo, channelBanner],
-      value: [["Subscribers", "Subscribers (EST)"],["Goal", `Subscribers to ${abbreviateNumber(getGoalText(subCount))}`],["Subscribers", "Subscribers (API)"],["Views", "Views (EST)"],["Views", "Views (API)"],["Videos", "Videos (API)"]],
-      studio: mrbeast.data.mrbeast
-    })} else {
-    res.json({"t": new Date(),
-      counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
-      user: [channelName, channelLogo, channelBanner],
-      value: [["Subscribers", "Subscribers (EST)"],["Goal", `Subscribers to ${abbreviateNumber(getGoalText(subCount))}`],["Subscribers", "Subscribers (API)"],["Views", "Views (EST)"],["Views", "Views (API)"],["Videos", "Videos (API)"]]
-    })};
+    console.log("Response from nextcounts:", respons2e.data); // Debugging
+
+    if (respons2e.data.verifiedSubCount === true) {
+      res.json({
+        t: new Date(),
+        counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
+        user: [channelName, channelLogo, channelBanner],
+        value: [
+          ["Subscribers", "Subscribers (EST)"],
+          ["Goal", `Subscribers to ${abbreviateNumber(getGoalText(subCount))}`],
+          ["Subscribers", "Subscribers (API)"],
+          ["Views", "Views (EST)"],
+          ["Views", "Views (API)"],
+          ["Videos", "Videos (API)"]
+        ],
+        studio: respons2e.data.subcount
+      });
+    } else if (channelId === "UCX6OQ3DkcsbYNE6H8uQQuVA") {
+      const mrbeast = await axios.get(`https://mrbeast.subscribercount.app/data`);
+      res.json({
+        t: new Date(),
+        counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
+        user: [channelName, channelLogo, channelBanner],
+        value: [
+          ["Subscribers", "Subscribers (EST)"],
+          ["Goal", `Subscribers to ${abbreviateNumber(getGoalText(subCount))}`],
+          ["Subscribers", "Subscribers (API)"],
+          ["Views", "Views (EST)"],
+          ["Views", "Views (API)"],
+          ["Videos", "Videos (API)"]
+        ],
+        studio: mrbeast.data.mrbeast
+      });
+    } else {
+      res.json({
+        t: new Date(),
+        counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
+        user: [channelName, channelLogo, channelBanner],
+        value: [
+          ["Subscribers", "Subscribers (EST)"],
+          ["Goal", `Subscribers to ${abbreviateNumber(getGoalText(subCount))}`],
+          ["Subscribers", "Subscribers (API)"],
+          ["Views", "Views (EST)"],
+          ["Views", "Views (API)"],
+          ["Videos", "Videos (API)"]
+        ]
+      });
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to fetch counts" });
   }
 });
+
 
 // API route to get YouTube live subscriber count
 app.get("/api/youtube/video/:videoId", async (req, res) => {
