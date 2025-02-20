@@ -244,7 +244,7 @@ app.get("/api/chat/countdown/:offset", async (req, res) => {
                     res.send(`The time until 2026 for ${offsetStr} is ${padZero(daysUntil2025)}:${padZero(hoursUntil2025)}:${padZero(minutesUntil2025)}:${padZero(secondsUntil2025)}!`);
   } catch (error) {
     console.error(error);
-    res.status(500).send("Failed to fetch information");
+    res.status(500).send("Failed to fetch counts");
   }
 });
 
@@ -260,7 +260,7 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
     }
 
     const { data: user1 } = await axios.get(
-      `https://mixerno.space/api/youtube-channel-counter/user/${ids.user1}`
+      `https://huntingstats378.onrender.com/api/youtube/channel/${ids.user1}`
     );
 
     const { data: mrbeast } = await axios.get(
@@ -268,14 +268,14 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
     );
 
     const { data: user2 } = await axios.get(
-      `https://api-v2.nextcounts.com/api/instagram/user/stats/${ids.user2}`
+      `https://huntingstats378.onrender.com/api/instagram/user/${ids.user2}`
     );
 
     // Ensure we have valid counts
-    const user1Count = mrbeast.mrbeast ?? user1?.counts?.[0]?.count;
-    const user2Followers = user2?.followers ?? 0;
-    const user2Following = user2?.following ?? 0;
-    const user2Posts = user2?.posts ?? 0;
+    const user1Count = mrbeast.mrbeast || user1.counts[0];
+    const user2Followers = user2.counts[0];
+    const user2Following = user2.counts[2];
+    const user2Posts = user2.counts[3];
 
     const gap = Math.abs(user2Followers - user1Count);
 
@@ -283,14 +283,14 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
       t: new Date(),
       gap: gap,
       counts: [
-        [ids.platform1, ids.user1, user1Count, user1?.counts?.[3]?.count ?? 0, user1?.counts?.[5]?.count ?? 0],
+        [ids.platform1, ids.user1, user1Count, user1.counts[3], user1.counts[5]],
         [ids.platform2, ids.user2, user2Followers, user2Following, user2Posts]
       ],
     });
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to fetch information" });
+    res.status(500).json({ error: "Failed to fetch counts" });
   }
 });
 
