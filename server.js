@@ -113,6 +113,40 @@ app.get("/api/youtube/channel/:channelId/studio", async (req, res) => {
 });
 
 // API route to get YouTube live subscriber count
+app.get("/api/youtube/video/:videoId", async (req, res) => {
+  const { videoId } = req.params;
+
+  try {
+    // Fetch data from the external API
+    const response = await axios.get(
+      `https://mixerno.space/api/youtube-video-counter/user/${videoId}`
+    );
+    const respons2e = await axios.get(
+      `https://returnyoutubedislikeapi.com/votes?videoId=${videoId}`
+    );
+    const subCount = response.data.counts[0].count;
+    const totalViews = response.data.counts[3].count;
+    const apiViews = respons2e.data.dislikes;
+    const apiSubCount = response.data.counts[2].count;
+    const videos = response.data.counts[5].count;
+    const channelLogo = response.data.user[1].count;
+    const channelName = response.data.user[0].count;
+    const channelBanner = response.data.user[2].count;
+    const goalCount = getGoal(subCount);
+
+    res.json({"t": new Date(),
+      counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
+      user: [channelName, channelLogo, channelBanner],
+      value: [["Views", "Views (EST)"],["Goal", `Views to ${abbreviateNumber(getGoalText(subCount))}`],["Views", "Views (API)"],["Likes", "Likes (API)"],["Dislikes", "Dislikes (API)"],["Comments", "Commments (API)"]]
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch subscriber count" });
+  }
+});
+
+
+// API route to get YouTube live subscriber count
 app.get("/api/chat/youtube/channel/:channelId", async (req, res) => {
   try {
     // Search for channel information
