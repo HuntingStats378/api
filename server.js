@@ -58,7 +58,7 @@ app.get("/api/youtube/channel/:channelId", async (req, res) => {
     const response = await axios.get(
       `https://mixerno.space/api/youtube-channel-counter/user/${channelId}`
     );
-    const respons2e = await fetch(
+    const respons2e = await axios.get(
       `https://api-v2.nextcounts.com/api/youtube/channel/${channelId}`
     );
     const subCount = response.data.counts[0].count;
@@ -71,19 +71,19 @@ app.get("/api/youtube/channel/:channelId", async (req, res) => {
     const channelBanner = response.data.user[2].count;
     const goalCount = getGoal(subCount);
 
-      if (respons2e.verifiedSubCount == true) {
+      if (respons2e.data.verifiedSubCount == true) {
     res.json({"t": new Date(),
       counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
       user: [channelName, channelLogo, channelBanner],
       value: [["Subscribers", "Subscribers (EST)"],["Goal", `Subscribers to ${abbreviateNumber(getGoalText(subCount))}`],["Subscribers", "Subscribers (API)"],["Views", "Views (EST)"],["Views", "Views (API)"],["Videos", "Videos (API)"]],
-      studio: respons2e.subcount
+      studio: respons2e.data.subcount
     })} else if (channelId == "UCX6OQ3DkcsbYNE6H8uQQuVA") {
     const mrbeast = await axios.get(`https://mrbeast.subscribercount.app/data`)
     res.json({"t": new Date(),
       counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
       user: [channelName, channelLogo, channelBanner],
       value: [["Subscribers", "Subscribers (EST)"],["Goal", `Subscribers to ${abbreviateNumber(getGoalText(subCount))}`],["Subscribers", "Subscribers (API)"],["Views", "Views (EST)"],["Views", "Views (API)"],["Videos", "Videos (API)"]],
-      studio: mrbeast.mrbeast
+      studio: mrbeast.data.mrbeast
     })} else {
     res.json({"t": new Date(),
       counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
