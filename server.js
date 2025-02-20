@@ -75,7 +75,7 @@ app.get("/api/youtube/channel/:channelId", async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to fetch subscriber count" });
+    res.status(500).json({ error: "Failed to fetch counts" });
   }
 });
 
@@ -141,10 +141,37 @@ app.get("/api/youtube/video/:videoId", async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to fetch subscriber count" });
+    res.status(500).json({ error: "Failed to fetch counts" });
   }
 });
 
+// API route to get YouTube live subscriber count
+app.get("/api/instagram/user/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Fetch data from the external API
+    const response = await axios.get(
+      `https://api-v2.nextcounts.com/api/instagram/user/${userId}`
+    );
+    const subCount = response.data.followers;
+    const totalViews = response.data.posts;
+    const apiSubCount = response.data.following;
+    const channelLogo = response.data.avatar;
+    const channelName = response.data.nickname;
+    const channelBanner = response.data.userBanner;
+    const goalCount = getGoal(subCount);
+
+    res.json({"t": new Date(),
+      counts: [subCount, goalCount, apiSubCount, totalViews],
+      user: [channelName, channelLogo, channelBanner],
+      value: [["Followers", "Followers (IG)"],["Goal", `Followers to ${abbreviateNumber(getGoalText(subCount))}`],["Following", "Following (IG)"],["Posts", "Posts (IG)"]]
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch counts" });
+  }
+});
 
 // API route to get YouTube live subscriber count
 app.get("/api/chat/youtube/channel/:channelId", async (req, res) => {
@@ -166,7 +193,7 @@ app.get("/api/chat/youtube/channel/:channelId", async (req, res) => {
     res.send(`${channelName} has got estimated ${numberWithCommas(subCount)} subscribers! (${time})`);
   } catch (error) {
     console.error(error);
-    res.status(500).send("Failed to fetch subscriber count");
+    res.status(500).send("Failed to fetch counts");
   }
 });
 
