@@ -73,8 +73,6 @@ app.get("/api/youtube/channel/:channelId", async (req, res) => {
     const channelBanner = response.data.user[2].count;
     const goalCount = getGoal(subCount);
 
-    console.log("Response from nextcounts:", respons2e.data); // Debugging
-
     if (respons2e.data.verifiedSubCount === true) {
       res.json({
         t: new Date(),
