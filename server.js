@@ -234,7 +234,7 @@ app.get("/api/tiktok/user/:userId", async (req, res) => {
   try {
     // Fetch data from the external API
     const response = await axios.get(
-      `https://mixerno.space/api/tiktok-user-count/user/${userId}`
+      `https://mixerno.space/api/tiktok-user-counter/user/${userId}`
     );
     const subCount = response.data.counts[0].count;
     const totalViews = response.data.counts[4].count;
@@ -263,7 +263,7 @@ app.get("/api/twitter/user/:userId", async (req, res) => {
   try {
     // Fetch data from the external API
     const response = await axios.get(
-      `https://mixerno.space/api/twitter-user-count/user/${userId}`
+      `https://mixerno.space/api/twitter-user-counter/user/${userId}`
     );
     const subCount = response.data.counts[0].count;
     const totalViews = response.data.counts[3].count;
