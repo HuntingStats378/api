@@ -272,7 +272,7 @@ app.get("/api/twitter/user/:userId", async (req, res) => {
     const videos = response.data.counts[5].count;
     const extra = response.data.counts[6].count;
     const channelLogo = response.data.user[1].count;
-    const channelName = respons2e.data.user[0].count;
+    const channelName = response.data.user[0].count;
     const channelBanner = response.data.user[2].count;
     const goalCount = getGoal(subCount);
 
