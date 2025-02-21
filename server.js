@@ -136,11 +136,14 @@ app.get("/api/youtube/video/:videoId", async (req, res) => {
       `https://mixerno.space/api/youtube-video-counter/user/${videoId}`
     );
     const respons2e = await axios.get(
+      `https://mixerno.space/api/youtube-stream-counter/user/${videoId}`
+    );
+    const respons3e = await axios.get(
       `https://returnyoutubedislikeapi.com/votes?videoId=${videoId}`
     );
     const subCount = response.data.counts[0].count;
     const totalViews = response.data.counts[3].count;
-    const apiViews = respons2e.data.dislikes;
+    const apiViews = respons3e.data.dislikes;
     const apiSubCount = response.data.counts[2].count;
     const videos = response.data.counts[5].count;
     const channelLogo = response.data.user[1].count;
