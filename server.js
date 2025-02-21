@@ -219,7 +219,7 @@ app.get("/api/instagram/user/:userId", async (req, res) => {
     res.json({"t": new Date(),
       counts: [subCount, goalCount, apiSubCount, totalViews],
       user: [channelName, channelLogo, channelBanner],
-      value: [["Followers", "Followers (IG)"],["Goal", `Followers to ${abbreviateNumber(getGoalText(subCount))}`],["Following", "Following (IG)"],["Posts", "Posts (IG)"]]
+      value: [["Followers", "Followers (Instagram)"],["Goal", `Followers to ${abbreviateNumber(getGoalText(subCount))}`],["Following", "Following (Instagram)"],["Posts", "Posts (Instagram)"]]
     });
   } catch (error) {
     console.error(error);
@@ -233,25 +233,22 @@ app.get("/api/tiktok/user/:userId", async (req, res) => {
 
   try {
     // Fetch data from the external API
-    const respons2e = await axios.get(
-      `https://countik.com/api/exist/${userId}`
-    );
     const response = await axios.get(
-      `https://countik.com/api/userinfo?sec_user_id=${respons2e.data.sec_uid}`
+      `https://mixerno.space/api/tiktok-user-count/user/${userId}`
     );
-    const subCount = response.data.followerCount;
-    const totalViews = response.data.videoCount;
-    const apiViews = response.data.heartCount;
-    const apiSubCount = response.data.followingCount;
-    const channelLogo = response.data.avatarThumb;
-    const channelName = respons2e.data.nickname;
-    const channelBanner = response.data.avatarThumb;
+    const subCount = response.data.counts[0].count;
+    const totalViews = response.data.counts[4].count;
+    const apiViews = response.data.counts[3].count;
+    const apiSubCount = response.data.counts[2].count;
+    const channelLogo = response.data.user[1];
+    const channelName = respons2e.data.user[0];
+    const channelBanner = response.data.user[2];
     const goalCount = getGoal(subCount);
 
     res.json({"t": new Date(),
       counts: [subCount, goalCount, apiSubCount, totalViews, apiViews],
       user: [channelName, channelLogo, channelBanner],
-      value: [["Followers", "Followers (TT)"],["Goal", `Followers to ${abbreviateNumber(getGoalText(subCount))}`],["Following", "Following (TT)"],["Videos", "Videos (TT)"],["Hearts","Hearts (TT)"]]
+      value: [["Followers", "Followers (TikTok)"],["Goal", `Followers to ${abbreviateNumber(getGoalText(subCount))}`],["Following", "Following (TikTok)"],["Videos", "Videos (TikTok)"],["Hearts","Hearts (TikTok)"]]
     });
   } catch (error) {
     console.error(error);
@@ -259,6 +256,36 @@ app.get("/api/tiktok/user/:userId", async (req, res) => {
   }
 });
 
+// API route to get YouTube live subscriber count
+app.get("/api/twitter/user/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Fetch data from the external API
+    const response = await axios.get(
+      `https://mixerno.space/api/twitter-user-count/user/${userId}`
+    );
+    const subCount = response.data.counts[0].count;
+    const totalViews = response.data.counts[3].count;
+    const apiViews = response.data.counts[4].count;
+    const apiSubCount = response.data.counts[2].count;
+    const videos = response.data.counts[5].count;
+    const extra = response.data.counts[6].count;
+    const channelLogo = response.data.user[1];
+    const channelName = respons2e.data.user[0];
+    const channelBanner = response.data.user[2];
+    const goalCount = getGoal(subCount);
+
+    res.json({"t": new Date(),
+      counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos, extra],
+      user: [channelName, channelLogo, channelBanner],
+      value: [["Followers", "Followers (Twitter)"],["Goal", `Followers to ${abbreviateNumber(getGoalText(subCount))}`],["Following", "Following (Twitter)"],["Likes","Likes (Twitter)"],["Lists","Lists (Twitter)"],["Media", "Media (Twitter)"],["Tweets","Tweets (Twitter)"]]
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch counts" });
+  }
+});
 
 // API route to get YouTube live subscriber count
 app.get("/api/chat/youtube/channel/:channelId", async (req, res) => {
