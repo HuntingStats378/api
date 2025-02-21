@@ -241,7 +241,7 @@ app.get("/api/tiktok/user/:userId", async (req, res) => {
     const apiViews = response.data.counts[3].count;
     const apiSubCount = response.data.counts[2].count;
     const channelLogo = response.data.user[1].count;
-    const channelName = respons2e.data.user[0].count;
+    const channelName = response.data.user[0].count;
     const channelBanner = response.data.user[2].count;
     const goalCount = getGoal(subCount);
 
