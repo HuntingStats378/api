@@ -123,26 +123,14 @@ async function fetchyoutubechannel(channelId) {
   }
 }
 
-app.get("/api/youtube/channel/:channelId", async (req, res) => {
-  const { channelId } = req.params;
-  res.json(await fetchyoutubechannel(channelId));
-});
-
-// API route to get YouTube live subscriber count
-app.get("/api/youtube/video/:videoId", async (req, res) => {
-  const { videoId } = req.params;
-
+async function fetchyoutubevideo(videoId) {
   try {
-    // Fetch data from the external API
-    const response = await axios.get(
-      `https://mixerno.space/api/youtube-video-counter/user/${videoId}`
-    );
-    const respons2e = await axios.get(
-      `https://mixerno.space/api/youtube-stream-counter/user/${videoId}`
-    );
-    const respons3e = await axios.get(
-      `https://returnyoutubedislikeapi.com/votes?videoId=${videoId}`
-    );
+    const [response, respons2e, respons3e] = await Promise.all([
+      axios.get(`https://mixerno.space/api/youtube-video-counter/user/${videoId}`),
+      axios.get(`https://mixerno.space/api/youtube-stream-counter/user/${videoId}`),
+      axios.get(`https://returnyoutubedislikeapi.com/votes?videoId=${videoId}`)
+    ]);
+
     const subCount = response.data.counts[0].count;
     const totalViews = response.data.counts[3].count;
     const apiViews = respons3e.data.dislikes;
@@ -153,32 +141,21 @@ app.get("/api/youtube/video/:videoId", async (req, res) => {
     const channelBanner = response.data.user[2].count;
     const goalCount = getGoal(subCount);
 
-    res.json({"t": new Date(),
-      counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
-      user: [channelName, channelLogo, channelBanner],
-      value: [["Views", "Views (EST)"],["Goal", `Views to ${abbreviateNumber(getGoalText(subCount))}`],["Views", "Views (API)"],["Likes", "Likes (API)"],["Dislikes", "Dislikes (API)"],["Comments", "Commments (API)"]]
-    });
+    return { "t": new Date(), counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos], user: [channelName, channelLogo, channelBanner] };
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to fetch counts" });
+    return { error: "Failed to fetch counts" };
   }
-});
+}
 
-// API route to get YouTube live subscriber count
-app.get("/api/youtube/stream/:videoId", async (req, res) => {
-  const { videoId } = req.params;
-
+async function fetchyoutubestream(videoId) {
   try {
-    // Fetch data from the external API
-    const response = await axios.get(
-      `https://mixerno.space/api/youtube-video-counter/user/${videoId}`
-    );
-    const respons2e = await axios.get(
-      `https://mixerno.space/api/youtube-stream-counter/user/${videoId}`
-    );
-    const respons3e = await axios.get(
-      `https://returnyoutubedislikeapi.com/votes?videoId=${videoId}`
-    );
+    const [response, respons2e, respons3e] = await Promise.all([
+      axios.get(`https://mixerno.space/api/youtube-video-counter/user/${videoId}`),
+      axios.get(`https://mixerno.space/api/youtube-stream-counter/user/${videoId}`),
+      axios.get(`https://returnyoutubedislikeapi.com/votes?videoId=${videoId}`)
+    ]);
+
     const liveCount = respons2e.data.counts[0].count;
     const subCount = response.data.counts[0].count;
     const totalViews = response.data.counts[3].count;
@@ -190,26 +167,17 @@ app.get("/api/youtube/stream/:videoId", async (req, res) => {
     const channelBanner = response.data.user[2].count;
     const goalCount = getGoal(subCount);
 
-    res.json({"t": new Date(),
-      counts: [liveCount, goalCount, subCount, apiSubCount, totalViews, apiViews, videos],
-      user: [channelName, channelLogo, channelBanner],
-      value: [["Watching", "Watching (API)"],["Goal", `Views to ${abbreviateNumber(getGoalText(subCount))}`],["Views", "Views (EST)"],["Views", "Views (API)"],["Likes", "Likes (API)"],["Dislikes", "Dislikes (API)"],["Comments", "Commments (API)"]]
-    });
+    return { "t": new Date(), counts: [liveCount, goalCount, subCount, apiSubCount, totalViews, apiViews, videos], user: [channelName, channelLogo, channelBanner] };
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to fetch counts" });
+    return { error: "Failed to fetch counts" };
   }
-});
+}
 
-// API route to get YouTube live subscriber count
-app.get("/api/instagram/user/:userId", async (req, res) => {
-  const { userId } = req.params;
-
+async function fetchinstagramuser(userId) {
   try {
-    // Fetch data from the external API
-    const response = await axios.get(
-      `https://api-v2.nextcounts.com/api/instagram/user/${userId}`
-    );
+    const response = await axios.get(`https://api-v2.nextcounts.com/api/instagram/user/${userId}`);
+
     const subCount = response.data.followers;
     const totalViews = response.data.posts;
     const apiSubCount = response.data.following;
@@ -218,26 +186,17 @@ app.get("/api/instagram/user/:userId", async (req, res) => {
     const channelBanner = response.data.userBanner;
     const goalCount = getGoal(subCount);
 
-    res.json({"t": new Date(),
-      counts: [subCount, goalCount, apiSubCount, totalViews],
-      user: [channelName, channelLogo, channelBanner],
-      value: [["Followers", "Followers (Instagram)"],["Goal", `Followers to ${abbreviateNumber(getGoalText(subCount))}`],["Following", "Following (Instagram)"],["Posts", "Posts (Instagram)"]]
-    });
+    return { "t": new Date(), counts: [subCount, goalCount, apiSubCount, totalViews], user: [channelName, channelLogo, channelBanner] };
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to fetch counts" });
+    return { error: "Failed to fetch counts" };
   }
-});
+}
 
-// API route to get YouTube live subscriber count
-app.get("/api/tiktok/user/:userId", async (req, res) => {
-  const { userId } = req.params;
-
+async function fetchtiktokuser(userId) {
   try {
-    // Fetch data from the external API
-    const response = await axios.get(
-      `https://mixerno.space/api/tiktok-user-counter/user/${userId}`
-    );
+    const response = await axios.get(`https://mixerno.space/api/tiktok-user-counter/user/${userId}`);
+
     const subCount = response.data.counts[0].count;
     const totalViews = response.data.counts[4].count;
     const apiViews = response.data.counts[3].count;
@@ -247,26 +206,17 @@ app.get("/api/tiktok/user/:userId", async (req, res) => {
     const channelBanner = response.data.user[2].count;
     const goalCount = getGoal(subCount);
 
-    res.json({"t": new Date(),
-      counts: [subCount, goalCount, apiSubCount, totalViews, apiViews],
-      user: [channelName, channelLogo, channelBanner],
-      value: [["Followers", "Followers (TikTok)"],["Goal", `Followers to ${abbreviateNumber(getGoalText(subCount))}`],["Following", "Following (TikTok)"],["Videos", "Videos (TikTok)"],["Hearts","Hearts (TikTok)"]]
-    });
+    return { "t": new Date(), counts: [subCount, goalCount, apiSubCount, totalViews, apiViews], user: [channelName, channelLogo, channelBanner] };
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to fetch counts" });
+    return { error: "Failed to fetch counts" };
   }
-});
+}
 
-// API route to get YouTube live subscriber count
-app.get("/api/twitter/user/:userId", async (req, res) => {
-  const { userId } = req.params;
-
+async function fetchtwitteruser(userId) {
   try {
-    // Fetch data from the external API
-    const response = await axios.get(
-      `https://mixerno.space/api/twitter-user-counter/user/${userId}`
-    );
+    const response = await axios.get(`https://mixerno.space/api/twitter-user-counter/user/${userId}`);
+
     const subCount = response.data.counts[0].count;
     const totalViews = response.data.counts[3].count;
     const apiViews = response.data.counts[4].count;
@@ -278,15 +228,41 @@ app.get("/api/twitter/user/:userId", async (req, res) => {
     const channelBanner = response.data.user[2].count;
     const goalCount = getGoal(subCount);
 
-    res.json({"t": new Date(),
-      counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos, extra],
-      user: [channelName, channelLogo, channelBanner],
-      value: [["Followers", "Followers (Twitter)"],["Goal", `Followers to ${abbreviateNumber(getGoalText(subCount))}`],["Following", "Following (Twitter)"],["Likes","Likes (Twitter)"],["Lists","Lists (Twitter)"],["Media", "Media (Twitter)"],["Tweets","Tweets (Twitter)"]]
-    });
+    return { "t": new Date(), counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos, extra], user: [channelName, channelLogo, channelBanner] };
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to fetch counts" });
+    return { error: "Failed to fetch counts" };
   }
+}
+
+app.get("/api/youtube/channel/:id", async (req, res) => {
+  const { id } = req.params;
+  res.json(await fetchyoutubechannel(id));
+});
+
+app.get("/api/youtube/video/:id", async (req, res) => {
+  const { id } = req.params;
+  res.json(await fetchyoutubevideo(id));
+});
+
+app.get("/api/youtube/stream/:id", async (req, res) => {
+  const { id } = req.params;
+  res.json(await fetchyoutubestream(id));
+});
+
+app.get("/api/instagram/user/:id", async (req, res) => {
+  const { id } = req.params;
+  res.json(await fetchinstagramuser(id));
+});
+
+app.get("/api/tiktok/user/:id", async (req, res) => {
+  const { id } = req.params;
+  res.json(await fetchtiktokuser(id));
+});
+
+app.get("/api/twitter/user/:id", async (req, res) => {
+  const { id } = req.params;
+  res.json(await fetchtwitteruser(id));
 });
 
 // API route to get YouTube live subscriber count
@@ -375,16 +351,14 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
       return res.status(400).json({ error: "Missing user IDs in response" });
     }
 
-    const { data: user1 } = await axios.get(
-      `https://huntingstats378.onrender.com/api/youtube/channel/${ids.user1}`
+    const { data: user1 } = await fetchyoutubechannel(ids.user1);
     );
 
     const { data: mrbeast } = await axios.get(
       `https://mrbeast.subscribercount.app/data`
     );
 
-    const { data: user2 } = await axios.get(
-      `https://huntingstats378.onrender.com/api/instagram/user/${ids.user2}`
+    const { data: user2 } = await fetchinstagramuser(ids.user2);
     );
 
     // Ensure we have valid counts
