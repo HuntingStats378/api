@@ -351,13 +351,13 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
       return res.status(400).json({ error: "Missing user IDs in response" });
     }
 
-    const { data: user1 } = await fetchyoutubechannel(ids.user1);
+    const user1 = await fetchyoutubechannel(ids.user1);
 
     const { data: mrbeast } = await axios.get(
       `https://mrbeast.subscribercount.app/data`
     );
 
-    const { data: user2 } = await fetchinstagramuser(ids.user2);
+    const user2 = await fetchinstagramuser(ids.user2);
 
     // Ensure we have valid counts
     const user1Count = mrbeast.mrbeast || user1.counts[0];
