@@ -49,9 +49,7 @@ function abbreviateNumber(num) {
     }
 }
 
-app.get("/api/youtube/channel/:channelId", async (req, res) => {
-  const { channelId } = req.params;
-
+async function fetchyoutubechannel(channelId) {
   try {
     // Fetch data from the first API
     const response = await axios.get(
@@ -74,7 +72,7 @@ app.get("/api/youtube/channel/:channelId", async (req, res) => {
     const goalCount = getGoal(subCount);
 
     if (respons2e.data.verifiedSubCount === true) {
-      res.json({
+      return {
         t: new Date(),
         counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
         user: [channelName, channelLogo, channelBanner],
@@ -87,10 +85,10 @@ app.get("/api/youtube/channel/:channelId", async (req, res) => {
           ["Videos", "Videos (API)"]
         ],
         studio: respons2e.data.subcount
-      });
+      };
     } else if (channelId === "UCX6OQ3DkcsbYNE6H8uQQuVA") {
       const mrbeast = await axios.get(`https://mrbeast.subscribercount.app/data`);
-      res.json({
+      return {
         t: new Date(),
         counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
         user: [channelName, channelLogo, channelBanner],
@@ -103,9 +101,9 @@ app.get("/api/youtube/channel/:channelId", async (req, res) => {
           ["Videos", "Videos (API)"]
         ],
         studio: mrbeast.data.mrbeast
-      });
+      };
     } else {
-      res.json({
+      return {
         t: new Date(),
         counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
         user: [channelName, channelLogo, channelBanner],
@@ -117,14 +115,18 @@ app.get("/api/youtube/channel/:channelId", async (req, res) => {
           ["Views", "Views (API)"],
           ["Videos", "Videos (API)"]
         ]
-      });
+      };
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to fetch counts" });
+    throw new Error("Failed to fetch counts");
   }
-});
+}
 
+app.get("/api/youtube/channel/:channelId", async (req, res) => {
+  const { channelId } = req.params;
+  res.json(fetchyoutubechannel(channelId));
+});
 
 // API route to get YouTube live subscriber count
 app.get("/api/youtube/video/:videoId", async (req, res) => {
