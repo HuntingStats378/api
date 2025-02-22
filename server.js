@@ -125,7 +125,7 @@ async function fetchyoutubechannel(channelId) {
 
 app.get("/api/youtube/channel/:channelId", async (req, res) => {
   const { channelId } = req.params;
-  res.json(fetchyoutubechannel(channelId));
+  res.json(await fetchyoutubechannel(channelId));
 });
 
 // API route to get YouTube live subscriber count
