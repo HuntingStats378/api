@@ -73,14 +73,14 @@ async function fetchyoutubechannel(channelId) {
     );
 
     // Extract required data
-    const subCount = response.data.counts[0].count | respons3e.data.counts[0];
-    const totalViews = response.data.counts[3].count | respons3e.data.counts[1];
+    const subCount = response.data.counts[0].count || respons3e.data.counts[0];
+    const totalViews = response.data.counts[3].count || respons3e.data.counts[1];
     const apiViews = response.data.counts[4].count | respons3e.data.counts[1];
-    const apiSubCount = response.data.counts[2].count | respons3e.data.user.subscriberCount;
-    const videos = response.data.counts[5].count | respons3e.data.counts[2];
-    const channelLogo = response.data.user[1].count | respons3e.data.user.pfp;
-    const channelName = response.data.user[0].count | respons3e.data.user.name;
-    const channelBanner = response.data.user[2].count | `https://banner.tf/${channelId}`;
+    const apiSubCount = response.data.counts[2].count || respons3e.data.user.subscriberCount;
+    const videos = response.data.counts[5].count || respons3e.data.counts[2];
+    const channelLogo = response.data.user[1].count || respons3e.data.user.pfp;
+    const channelName = response.data.user[0].count || respons3e.data.user.name;
+    const channelBanner = response.data.user[2].count || `https://banner.tf/${channelId}`;
     const goalCount = getGoal(subCount);
 
     if (respons2e.data.verifiedSubCount === true) {
