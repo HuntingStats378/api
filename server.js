@@ -51,24 +51,36 @@ function abbreviateNumber(num) {
 
 async function fetchyoutubechannel(channelId) {
   try {
-    // Fetch data from the first API
-    const response = await axios.get(
-      `https://mixerno.space/api/youtube-channel-counter/user/${channelId}`
-    );
+    let response;
+
+    try {
+      // Attempt to fetch data from the primary API (Mixerno)
+      response = await axios.get(
+        `https://mixerno.space/api/youtube-channel-counter/user/${channelId}`
+      );
+    } catch (error) {
+      console.warn("Mixerno API failed, trying backup API...");
+
+      // Attempt to fetch data from the backup API (NextCounts)
+      respons3e = await axios.get(
+        `https://livecounts.xyz/api/youtube-live-subscriber-count/live/${channelId}`
+      );
+    }
 
     // Fetch data from the second API
     const respons2e = await axios.get(
       `https://api-v2.nextcounts.com/api/youtube/channel/${channelId}`
     );
 
-    const subCount = response.data.counts[0].count;
-    const totalViews = response.data.counts[3].count;
-    const apiViews = response.data.counts[4].count;
-    const apiSubCount = response.data.counts[2].count;
-    const videos = response.data.counts[5].count;
-    const channelLogo = response.data.user[1].count;
-    const channelName = response.data.user[0].count;
-    const channelBanner = response.data.user[2].count;
+    // Extract required data
+    const subCount = response.data.counts[0].count | respons3e.data.counts[0];
+    const totalViews = response.data.counts[3].count | respons3e.data.counts[1];
+    const apiViews = response.data.counts[4].count | respons3e.data.counts[1];
+    const apiSubCount = response.data.counts[2].count | respons3e.data.user.subscriberCount;
+    const videos = response.data.counts[5].count | respons3e.data.counts[2];
+    const channelLogo = response.data.user[1].count | respons3e.data.user.pfp;
+    const channelName = response.data.user[0].count | respons3e.data.user.name;
+    const channelBanner = response.data.user[2].count | `https://banner.tf/${channelId}`;
     const goalCount = getGoal(subCount);
 
     if (respons2e.data.verifiedSubCount === true) {
@@ -118,8 +130,8 @@ async function fetchyoutubechannel(channelId) {
       };
     }
   } catch (error) {
-    console.error(error);
-    throw new Error("Failed to fetch counts");
+    console.error("Both APIs failed:", error);
+    throw new Error("Failed to fetch counts from both primary and backup APIs.");
   }
 }
 
