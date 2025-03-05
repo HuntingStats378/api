@@ -257,7 +257,7 @@ async function fetchtwitteruser(userId) {
 }
 
 setInterval(fetchLatestSzaSzabiUpload, 60 * 60 * 1000); // Fetch every hour
-fetchLatestUpload(); // Initial fetch
+fetchLatestSzaSzabiUpload(); // Initial fetch
 
 app.get("/api/youtube/channel/:id", async (req, res) => {
   const { id } = req.params;
@@ -410,13 +410,13 @@ app.get("/api/trigger", async (req, res) => {
         res.send("ohio");
 });
 
-wsszu.on("connection", (ws) => {
+wsszu.on("connection", (wsszu) => {
     console.log("Client connected to SzaSzabi upload WebSocket");
     if (latestSzaSzabiUpload) {
-        ws.send(JSON.stringify(latestSzaSzabiUpload));
+        wsszu.send(JSON.stringify(latestSzaSzabiUpload));
     }
 
-    ws.on("close", () => {
+    wsszu.on("close", () => {
         console.log("Client disconnected");
     });
 });
