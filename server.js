@@ -8,6 +8,7 @@ app.use(cors());
 
 const server = http.createServer(app);
 const wsszu = new WebSocket.Server({ server, path: "/websocket/szaszabi-upload" });
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 const SZASZABI_ID = "UCPy4s5K2Ejyjt5P9HCzTt4w"; // Szaszabi's channel ID
 let latestSzaSzabiUpload = null;
 
