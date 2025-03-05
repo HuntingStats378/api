@@ -1,8 +1,15 @@
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
+const http = require('http');
+const WebSocket = require('ws');
 const app = express();
 app.use(cors());
+
+const server = http.createServer(app);
+const wsszu = new WebSocket.Server({ server, path: "/websocket/szaszabi-upload" });
+const SZASZABI_ID = "UCPy4s5K2Ejyjt5P9HCzTt4w"; // Szaszabi's channel ID
+let latestSzaSzabiUpload = null;
 
 function padZero(number) {
     return String(number).padStart(2, '0');
@@ -46,6 +53,20 @@ function abbreviateNumber(num) {
         return (num / 1_000).toFixed(2).replace(/\.?0+$/, '') + 'K';
     } else {
         return num.toString();
+    }
+}
+
+async function fetchLatestSzaSzabiUpload() {
+    try {
+        const response = await axios.get(
+            `https://www.googleapis.com/youtube/v3/search?key=${YOUTUBE_API_KEY}&channelId=${SZASZABI_ID}&part=snippet&order=date&type=video&maxResults=1`
+        );
+        
+        if (response.data.items.length > 0) {
+            latestSzaSzabiUpload = response.data.items[0];
+        }
+    } catch (error) {
+        console.error("Error fetching latest upload:", error.message);
     }
 }
 
@@ -235,6 +256,9 @@ async function fetchtwitteruser(userId) {
   }
 }
 
+setInterval(fetchLatestSzaSzabiUpload, 60 * 60 * 1000); // Fetch every hour
+fetchLatestUpload(); // Initial fetch
+
 app.get("/api/youtube/channel/:id", async (req, res) => {
   const { id } = req.params;
   res.json(await fetchyoutubechannel(id));
@@ -384,6 +408,17 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
 
 app.get("/api/trigger", async (req, res) => {
         res.send("ohio");
+});
+
+wsszu.on("connection", (ws) => {
+    console.log("Client connected to SzaSzabi upload WebSocket");
+    if (latestSzaSzabiUpload) {
+        ws.send(JSON.stringify(latestSzaSzabiUpload));
+    }
+
+    ws.on("close", () => {
+        console.log("Client disconnected");
+    });
 });
 
 module.exports = app;
