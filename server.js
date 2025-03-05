@@ -9,7 +9,6 @@ app.use(cors());
 const server = http.createServer(app);
 const wsszu = new WebSocket.Server({ server, path: "/websocket/szaszabi-upload" });
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
-const SZASZABI_ID = "UCPy4s5K2Ejyjt5P9HCzTt4w"; // Szaszabi's channel ID
 let latestSzaSzabiUpload = null;
 
 function padZero(number) {
@@ -60,7 +59,7 @@ function abbreviateNumber(num) {
 async function fetchLatestSzaSzabiUpload() {
     try {
         const response = await axios.get(
-            `https://www.googleapis.com/youtube/v3/search?key=${YOUTUBE_API_KEY}&channelId=${SZASZABI_ID}&part=snippet&order=date&type=video&maxResults=1`
+            `https://www.googleapis.com/youtube/v3/search?key=${YOUTUBE_API_KEY}&channelId=UCx2ey9QUf1Ja4sV3EdavwSg&part=snippet&order=date&type=video&maxResults=1`
         );
         
         if (response.data.items.length > 0) {
