@@ -61,9 +61,16 @@ async function fetchLatestSzaSzabiUpload() {
         const response = await axios.get(
             `https://www.googleapis.com/youtube/v3/search?key=${YOUTUBE_API_KEY}&channelId=UCx2ey9QUf1Ja4sV3EdavwSg&part=snippet&order=date&type=video&maxResults=1`
         );
-        
+
         if (response.data.items.length > 0) {
             latestSzaSzabiUpload = response.data.items[0];
+
+            // Broadcast update to all WebSocket clients
+            wsszu.clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify(latestSzaSzabiUpload));
+                }
+            });
         }
     } catch (error) {
         console.error("Error fetching latest upload:", error.message);
@@ -256,9 +263,6 @@ async function fetchtwitteruser(userId) {
   }
 }
 
-setInterval(fetchLatestSzaSzabiUpload, 60 * 60 * 1000); // Fetch every hour
-fetchLatestSzaSzabiUpload(); // Initial fetch
-
 app.get("/api/youtube/channel/:id", async (req, res) => {
   const { id } = req.params;
   res.json(await fetchyoutubechannel(id));
@@ -410,20 +414,36 @@ app.get("/api/trigger", async (req, res) => {
         res.send("ohio");
 });
 
-wsszu.on("connection", (wsszu) => {
-    console.log("Client connected to SzaSzabi upload WebSocket");
-    if (latestSzaSzabiUpload) {
-        wsszu.send(JSON.stringify(latestSzaSzabiUpload));
-    }
+wsszu.on("connection", (ws) => {
+    console.log("New WebSocket connection established");
 
-    wsszu.on("close", () => {
-        console.log("Client disconnected");
+    ws.on("message", (message) => {
+        console.log("Received message:", message);
+        // Handle incoming messages if needed
     });
+
+    ws.on("close", () => {
+        console.log("WebSocket client disconnected");
+    });
+
+    ws.on("error", (error) => {
+        console.error("WebSocket error:", error);
+    });
+
+    // Send the latest upload data to the client if available
+    if (latestSzaSzabiUpload) {
+        ws.send(JSON.stringify(latestSzaSzabiUpload));
+    }
 });
+
+// Fetch the latest upload every hour
+setInterval(fetchLatestSzaSzabiUpload, 1000 * 60 * 60);
 
 module.exports = app;
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    fetchLatestSzaSzabiUpload(); // Fetch initial data on startup
 });
+
