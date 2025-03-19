@@ -63,7 +63,7 @@ async function mrbeast(count) {
     );
     
     if (count) return count == mrbeast;
-    let mrbeast = response.data.mrbeast;
+    mrbeast = response.data.mrbeast;
 }
 
 async function fetchLatestSzaSzabiUpload() {
