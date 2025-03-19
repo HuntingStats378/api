@@ -10,7 +10,6 @@ const server = http.createServer(app);
 const wsszu = new WebSocket.Server({ server, path: "/websocket/szaszabi-upload" });
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 let latestSzaSzabiUpload = null;
-let mrbeast = null;
 
 function padZero(number) {
     return String(number).padStart(2, '0');
@@ -55,15 +54,6 @@ function abbreviateNumber(num) {
     } else {
         return num.toString();
     }
-}
-
-async function mrbeast(count) {
-    const response = await axios.get(
-        `https://mrbeast.subscribercount.app/data`
-    );
-    
-    if (count) return count == mrbeast;
-    mrbeast = response.data.mrbeast;
 }
 
 async function fetchLatestSzaSzabiUpload() {
@@ -397,11 +387,8 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
 
     const user2 = await fetchinstagramuser(ids.user2);
 
-    let user1Count = mrbeast(mrbeast.mrbeast) === false 
-    ? (mrbeast.mrbeast || user1.counts[0]) 
-    : (user1.counts[0] || mrbeast.mrbeast);
-
     // Ensure we have valid counts
+    const user1Count = mrbeast.mrbeast || user1.counts[0];
     const user2Followers = user2.counts[0];
     const user2Following = user2.counts[2];
     const user2Posts = user2.counts[3];
@@ -451,7 +438,6 @@ wsszu.on("connection", (ws) => {
 
 // Fetch the latest upload every hour
 setInterval(fetchLatestSzaSzabiUpload, 1000 * 60 * 60);
-setInterval(mrbeast, 1000 * 60);
 
 module.exports = app;
 
@@ -460,4 +446,3 @@ server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     fetchLatestSzaSzabiUpload(); // Fetch initial data on startup
 });
-
