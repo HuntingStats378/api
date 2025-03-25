@@ -382,13 +382,17 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
     const user1 = await fetchyoutubechannel(ids.user1);
 
     const { data: mrbeast } = await axios.get(
+      `https://ests.sctools.org/api/get/UCX6OQ3DkcsbYNE6H8uQQuVA`
+    );
+
+    const { data: viewstats } = await axios.get(
       `https://mrbeast.subscribercount.app/data`
     );
 
     const user2 = await fetchinstagramuser(ids.user2);
 
     // Ensure we have valid counts
-    const user1Count = mrbeast.mrbeast || user1.counts[0];
+    const user1Count = mrbeast.stats.estCount || mrbeast.mrbeast || user1.counts[0];
     const user2Followers = user2.counts[0];
     const user2Following = user2.counts[2];
     const user2Posts = user2.counts[3];
