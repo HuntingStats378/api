@@ -391,6 +391,10 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
 
     const user2 = await fetchinstagramuser(ids.user2);
 
+    if (!mrbeast) {
+        console.log(GNZGAY)
+    }
+
     // Ensure we have valid counts
     const user1Count = mrbeast.stats.estCount || viewstats.mrbeast || user1.counts[0];
     const user2Followers = user2.counts[0];
