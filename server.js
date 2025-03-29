@@ -396,7 +396,7 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
     }
 
     // Ensure we have valid counts
-    const user1Count = mrbeast.stats.estCount || viewstats.mrbeast || user1.counts[0];
+    const user1Count = viewstats.mrbeast || viewstats.mrbeast || user1.counts[0];
     const user2Followers = user2.counts[0];
     const user2Following = user2.counts[2];
     const user2Posts = user2.counts[3];
