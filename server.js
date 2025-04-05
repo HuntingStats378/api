@@ -414,6 +414,53 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
   }
 });
 
+// In-memory data storage
+const user1Data = [];
+const user2Data = [];
+
+// Helper function to get latest item from an array
+const getLatest = (arr) => arr.length > 0 ? arr[arr.length - 1] : null;
+
+// POST for user1
+app.post('/user1', (req, res) => {
+  const { value } = req.body;
+  if (value === undefined) {
+    return res.status(400).json({ error: 'Missing value' });
+  }
+  user1Data.push(value);
+  res.json({ message: 'Value stored for user1', data: value });
+});
+
+// GET all values for user1
+app.get('/user1', (req, res) => {
+  res.json({ user: 'user1', data: user1Data });
+});
+
+// GET latest value for user1
+app.get('/user1/latest', (req, res) => {
+  res.json({ user: 'user1', latest: getLatest(user1Data) });
+});
+
+// POST for user2
+app.post('/user2', (req, res) => {
+  const { value } = req.body;
+  if (value === undefined) {
+    return res.status(400).json({ error: 'Missing value' });
+  }
+  user2Data.push(value);
+  res.json({ message: 'Value stored for user2', data: value });
+});
+
+// GET all values for user2
+app.get('/user2', (req, res) => {
+  res.json({ user: 'user2', data: user2Data });
+});
+
+// GET latest value for user2
+app.get('/user2/latest', (req, res) => {
+  res.json({ user: 'user2', latest: getLatest(user2Data) });
+});
+
 app.get("/api/trigger", async (req, res) => {
         res.send("ohio");
 });
