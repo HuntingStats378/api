@@ -495,21 +495,24 @@ const HEADERS = {
     'Authorization': ARCANE_API_KEY
 };
 
-app.get('/api/discord/statistics/top100', async (req, res) => {
+app.get('/api/combinedData', async (req, res) => {
     try {
-        const [page0, page1] = await Promise.all([
-            fetch(`${ARCANE_API_BASE}?limit=50&page=0`, { headers: HEADERS }).then(res => res.json()),
-            fetch(`${ARCANE_API_BASE}?limit=50&page=1`, { headers: HEADERS }).then(res => res.json())
+        const [res50, res100] = await Promise.all([
+            fetch(`${ARCANE_API_BASE}?limit=50&page=0`, { headers: HEADERS }),
+            fetch(`${ARCANE_API_BASE}?limit=50&page=1`, { headers: HEADERS })
         ]);
 
-        if (!Array.isArray(page0.levels) || !Array.isArray(page1.levels)) {
-            return res.status(500).json({ error: 'Unexpected data format from Arcane API' });
-        }
+        const data50 = await res50.json();
+        const data100 = await res100.json();
 
-        const combinedData = [...page0.levels, ...page1.levels];
+        const top50 = Array.isArray(data50.levels) ? data50.levels : [];
+        const top100 = Array.isArray(data100.levels) ? data100.levels : [];
+
+        const combinedData = [...top50, ...top100];
+
         res.json(combinedData);
     } catch (error) {
-        console.error('Error fetching data from Arcane API:', error);
+        console.error('Error fetching leaderboard data:', error);
         res.status(500).json({ error: 'Failed to fetch leaderboard data' });
     }
 });
