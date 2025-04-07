@@ -495,7 +495,7 @@ const HEADERS = {
     'Authorization': ARCANE_API_KEY
 };
 
-app.get('/api/combinedData', async (req, res) => {
+app.get('/api/discord/statistics/top100', async (req, res) => {
     try {
         const [res50, res100] = await Promise.all([
             fetch(`${ARCANE_API_BASE}?limit=50&page=0`, { headers: HEADERS }),
