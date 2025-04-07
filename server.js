@@ -56,6 +56,21 @@ function abbreviateNumber(num) {
     }
 }
 
+async function getTop100Leaderboard() {
+    const [res50, res100] = await Promise.all([
+        fetch(`${ARCANE_API_BASE}?limit=50&page=0`, { headers: HEADERS }),
+        fetch(`${ARCANE_API_BASE}?limit=50&page=1`, { headers: HEADERS })
+    ]);
+
+    const data50 = await res50.json();
+    const data100 = await res100.json();
+
+    const top50 = Array.isArray(data50.levels) ? data50.levels : [];
+    const top100 = Array.isArray(data100.levels) ? data100.levels : [];
+
+    return [...top50, ...top100];
+}
+
 async function fetchLatestSzaSzabiUpload() {
     try {
         const response = await axios.get(
@@ -496,25 +511,12 @@ const HEADERS = {
 };
 
 app.get('/api/discord/statistics/top100', async (req, res) => {
-    try {
-        const [res50, res100] = await Promise.all([
-            fetch(`${ARCANE_API_BASE}?limit=50&page=0`, { headers: HEADERS }),
-            fetch(`${ARCANE_API_BASE}?limit=50&page=1`, { headers: HEADERS })
-        ]);
+    res.json(await getTop100Leaderboard());
+});
 
-        const data50 = await res50.json();
-        const data100 = await res100.json();
-
-        const top50 = Array.isArray(data50.levels) ? data50.levels : [];
-        const top100 = Array.isArray(data100.levels) ? data100.levels : [];
-
-        const combinedData = [...top50, ...top100];
-
-        res.json(combinedData);
-    } catch (error) {
-        console.error('Error fetching leaderboard data:', error);
-        res.status(500).json({ error: 'Failed to fetch leaderboard data' });
-    }
+app.get('/api/discord/statistics/:id', async (req, res) => {
+    const { id } = req.params;
+    res.json(await getTop100Leaderboard());
 });
 
 // Fetch the latest upload every hour
