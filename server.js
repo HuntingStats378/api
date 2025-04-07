@@ -515,8 +515,15 @@ app.get('/api/discord/statistics/top100', async (req, res) => {
 });
 
 app.get('/api/discord/statistics/:id', async (req, res) => {
-    const { id } = req.params;
-    res.json(await getTop100Leaderboard());
+    const id = req.params.id;
+    const combinedData = await getTop100Leaderboard();
+    const found = combinedData.find(entry => entry.id === id);
+
+    if (found) {
+        res.json(found);
+    } else {
+        res.status(404).json({ error: `User with ID ${id} not found in top 100.` });
+    }
 });
 
 // Fetch the latest upload every hour
