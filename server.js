@@ -487,6 +487,33 @@ wsszu.on("connection", (ws) => {
     }
 });
 
+const ARCANE_API_BASE = 'https://arcane.bot/api/guilds/1150096734576451614/levels/leaderboard';
+const ARCANE_API_KEY = process.env.ARCANE_API_KEY;
+const HEADERS = {
+    'Accept': 'application/json, text/plain, */*',
+    'x-user-agent': 'Arcane-Bot-5.0',
+    'Authorization': ARCANE_API_KEY
+};
+
+app.get('/api/discord/statistics/top100', async (req, res) => {
+    try {
+        const [page0, page1] = await Promise.all([
+            fetch(`${ARCANE_API_BASE}?limit=50&page=0`, { headers: HEADERS }).then(res => res.json()),
+            fetch(`${ARCANE_API_BASE}?limit=50&page=1`, { headers: HEADERS }).then(res => res.json())
+        ]);
+
+        if (!Array.isArray(page0.levels) || !Array.isArray(page1.levels)) {
+            return res.status(500).json({ error: 'Unexpected data format from Arcane API' });
+        }
+
+        const combinedData = [...page0.levels, ...page1.levels];
+        res.json(combinedData);
+    } catch (error) {
+        console.error('Error fetching data from Arcane API:', error);
+        res.status(500).json({ error: 'Failed to fetch leaderboard data' });
+    }
+});
+
 // Fetch the latest upload every hour
 setInterval(fetchLatestSzaSzabiUpload, 1000 * 60 * 60);
 
