@@ -92,6 +92,7 @@ async function fetchLatestSzaSzabiUpload() {
     }
 }
 
+async function fetchyoutubechannel(channelId) {
   try {
     // Fetch from Mixerno API
     const data = await fetch(
