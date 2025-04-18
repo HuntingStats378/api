@@ -92,48 +92,6 @@ async function fetchLatestSzaSzabiUpload() {
     }
 }
 
-function numberWithCommas(x) {
-  return x.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
-}
-
-function getGoal(count2) {
-      var count = parseFloat(count2);
-      var t = parseFloat(count2);
-      if (count == null) return 0;
-      if (10 > t) return 10 - t;
-      var e = "" + t;
-      return Math.abs(
-        t -
-          (e.length > 6
-            ? 1e6 * (Math.floor(t / 1e6) + 1)
-            : (parseInt(e.charAt(0)) + 1) * Math.pow(10, e.length - 1))
-      );
-    }
-
-function getGoalText(count2) {
-      var count = parseFloat(count2);
-      var t = parseFloat(count2);
-      if (count == null) return 0;
-      if (10 > t) return 10;
-      var e = "" + t;
-      return e.length > 6
-        ? 1e6 * (Math.floor(t / 1e6) + 1)
-        : (parseInt(e.charAt(0)) + 1) * Math.pow(10, e.length - 1);
-    }
-
-function abbreviateNumber(num) {
-    if (num >= 1_000_000_000) {
-        return (num / 1_000_000_000).toFixed(2).replace(/\.?0+$/, '') + 'B';
-    } else if (num >= 1_000_000) {
-        return (num / 1_000_000).toFixed(2).replace(/\.?0+$/, '') + 'M';
-    } else if (num >= 1_000) {
-        return (num / 1_000).toFixed(2).replace(/\.?0+$/, '') + 'K';
-    } else {
-        return num.toString();
-    }
-}
-
-async function fetchyoutubechannel(channelId) {
   try {
     // Fetch from Mixerno API
     const data = await fetch(
