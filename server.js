@@ -588,6 +588,43 @@ app.get('/api/discord/statistics/:id', async (req, res) => {
     }
 });
 
+const { Client, GatewayIntentBits } = require('discord.js');
+
+// === Discord Bot Setup ===
+const bot = new Client({ intents: [GatewayIntentBits.DirectMessages, GatewayIntentBits.Guilds], partials: ['CHANNEL'] });
+
+const DISCORD_BOT_TOKEN = process.env.BOT_TOKEN;
+const YOUR_USER_ID = process.env.OWNER_ID;
+
+// === WebSocket Server Setup ===
+const wss = new WebSocket.Server({ port: 8080, path: '/websocket/ipad-uptime' });
+
+wss.on('connection', async function connection(ws, req) {
+  const ip = req.socket.remoteAddress;
+  console.log(`Client connected from ${ip}`);
+
+  try {
+    const user = await bot.users.fetch(YOUR_USER_ID);
+    user.send(`📶 WebSocket connection established from ${ip}`);
+  } catch (err) {
+    console.error('Failed to send DM:', err);
+  }
+
+  ws.on('close', async () => {
+    console.log(`Client disconnected from ${ip}`);
+    try {
+      const user = await bot.users.fetch(YOUR_USER_ID);
+      user.send(`❌ WebSocket connection closed from ${ip}`);
+    } catch (err) {
+      console.error('Failed to send DM:', err);
+    }
+  });
+});
+
+// === Start the bot ===
+bot.login(DISCORD_BOT_TOKEN);
+
+
 // Fetch the latest upload every hour
 setInterval(fetchLatestSzaSzabiUpload, 1000 * 60 * 60);
 
