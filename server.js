@@ -6,6 +6,7 @@ const WebSocket = require('ws');
 const { Client, GatewayIntentBits } = require('discord.js');
 const app = express();
 app.use(cors());
+
 // === Discord Bot Setup ===
 const bot = new Client({ intents: [GatewayIntentBits.DirectMessages, GatewayIntentBits.Guilds], partials: ['CHANNEL'] });
 const BOT_TOKEN = process.env.BOT_TOKEN;
