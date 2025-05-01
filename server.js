@@ -3,13 +3,18 @@ const axios = require("axios");
 const cors = require("cors");
 const http = require('http');
 const WebSocket = require('ws');
+const { Client, GatewayIntentBits } = require('discord.js');
 const app = express();
 app.use(cors());
-
+// === Discord Bot Setup ===
+const bot = new Client({ intents: [GatewayIntentBits.DirectMessages, GatewayIntentBits.Guilds], partials: ['CHANNEL'] });
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const OWNER_ID = process.env.OWNER_ID;
 const server = http.createServer(app);
 const wsszu = new WebSocket.Server({ server, path: "/websocket/szaszabi-upload" });
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 let latestSzaSzabiUpload = null;
+bot.login(BOT_TOKEN);
 
 function padZero(number) {
     return String(number).padStart(2, '0');
@@ -562,6 +567,31 @@ wsszu.on("connection", (ws) => {
     if (latestSzaSzabiUpload) {
         ws.send(JSON.stringify(latestSzaSzabiUpload));
     }
+});
+
+// === WebSocket Server Setup ===
+const ipad_uptime = new WebSocket.Server({ port: 8080, path: '/websocket/ipad-uptime' });
+
+ipad_uptime.on('connection', async function connection(ws, req) {
+  const ip = req.socket.remoteAddress;
+  console.log(`Client connected from ${ip}`);
+
+  try {
+    const user = await bot.users.fetch(OWNER_ID);
+    user.send(`📶 WebSocket connection established from ${ip}`);
+  } catch (err) {
+    console.error('Failed to send DM:', err);
+  }
+
+  ws.on('close', async () => {
+    console.log(`Client disconnected from ${ip}`);
+    try {
+      const user = await bot.users.fetch(OWNER_ID);
+      user.send(`❌ WebSocket connection closed from ${ip}`);
+    } catch (err) {
+      console.error('Failed to send DM:', err);
+    }
+  });
 });
 
 const ARCANE_API_BASE = 'https://arcane.bot/api/guilds/1150096734576451614/levels/leaderboard';
