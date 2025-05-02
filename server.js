@@ -571,7 +571,7 @@ wsszu.on("connection", (ws) => {
 });
 
 // === WebSocket Server Setup ===
-const ipad_uptime = new WebSocket.Server({ port: 8080, path: '/websocket/ipad-uptime' });
+const ipad_uptime = new WebSocket.Server({ path: '/websocket/ipad-uptime' });
 
 ipad_uptime.on('connection', async function connection(ws, req) {
   const ip = req.socket.remoteAddress;
