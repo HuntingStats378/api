@@ -478,9 +478,9 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
 
     // Ensure we have valid counts
     const user1Count = user1.counts[0];
-    const user2Followers = user2[0];
-    const user2Following = user2[1];
-    const user2Posts = user2[2];
+    const user2Followers = user2.counts[0];
+    const user2Following = user2.counts[1];
+    const user2Posts = user2.counts[2];
 
     const gap = Math.abs(user2Followers - user1Count);
 
