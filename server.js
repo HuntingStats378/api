@@ -472,13 +472,15 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
       //`https://mrbeast.subscribercount.app/data`
     //);
 
-    const user2 = await fetchinstagramuser(ids.user2);
+    const data = await fetch(`https://livecounts.xyz/api/instagram-live-follower-count/live/${ids.user2}`);
+
+    const user2 = await data.json();
 
     // Ensure we have valid counts
     const user1Count = user1.counts[0];
-    const user2Followers = user2.counts[0];
-    const user2Following = user2.counts[2];
-    const user2Posts = user2.counts[3];
+    const user2Followers = user2[0];
+    const user2Following = user2[1];
+    const user2Posts = user2[2];
 
     const gap = Math.abs(user2Followers - user1Count);
 
