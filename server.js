@@ -15,6 +15,8 @@ const server = http.createServer(app);
 const wsszu = new WebSocket.Server({ server, path: "/websocket/szaszabi-upload" });
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 let latestSzaSzabiUpload = null;
+let overriddenUser2 = null; // Store override in memory
+
 bot.login(BOT_TOKEN);
 
 function padZero(number) {
@@ -451,32 +453,38 @@ app.get("/api/chat/countdown/:offset", async (req, res) => {
   }
 });
 
+// POST /api/streams/mrbeastrise — set override for user2
+app.post("/api/streams/mrbeastrise", (req, res) => {
+  const { user2 } = req.body;
+
+  if (!user2) {
+    return res.status(400).json({ error: "Missing user2 in body" });
+  }
+
+  overriddenUser2 = user2;
+  console.log(`✅ user2 overridden: ${user2}`);
+  res.status(200).json({ message: `user2 updated to ${user2}` });
+});
+
+// GET /api/streams/mrbeastrise — fetch actual data
 app.get("/api/streams/mrbeastrise", async (req, res) => {
   try {
-    // Fetch data from external API
     const { data: ids } = await axios.get(
       `https://huntingstats378.github.io/streams/mrbeastrise/ids.json`
     );
 
-    if (!ids.user1 || !ids.user2) {
-      return res.status(400).json({ error: "Missing user IDs in response" });
+    if (!ids.user1 || (!ids.user2 && !overriddenUser2)) {
+      return res.status(400).json({ error: "Missing user IDs" });
     }
 
     const user1 = await fetchyoutubechannel(ids.user1);
+    const user2Id = overriddenUser2 || ids.user2;
 
-    //const { data: mrbeast } = await axios.get(
-      //`https://ests.sctools.org/api/get/UCX6OQ3DkcsbYNE6H8uQQuVA`
-    //);
-
-    //const { data: viewstats } = await axios.get(
-      //`https://mrbeast.subscribercount.app/data`
-    //);
-
-    const data = await fetch(`https://livecounts.xyz/api/instagram-live-follower-count/live/${ids.user2}`);
-
+    const data = await fetch(
+      `https://livecounts.xyz/api/instagram-live-follower-count/live/${user2Id}`
+    );
     const user2 = await data.json();
 
-    // Ensure we have valid counts
     const user1Count = user1.counts[0];
     const user2Followers = user2.counts[0];
     const user2Following = user2.counts[1];
@@ -489,10 +497,9 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
       gap: gap,
       counts: [
         [ids.platform1, ids.user1, user1Count, user1.counts[3], user1.counts[5]],
-        [ids.platform2, ids.user2, user2Followers, user2Following, user2Posts]
+        [ids.platform2, user2Id, user2Followers, user2Following, user2Posts]
       ],
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to fetch counts" });
