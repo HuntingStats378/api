@@ -477,26 +477,31 @@ app.get("/api/streams/mrbeastrise", async (req, res) => {
       return res.status(400).json({ error: "Missing user IDs" });
     }
 
-    const user1 = await fetchyoutubechannel(ids.user1);
+    const data1 = await fetch(
+      `https://ests.sctools.org/api/get/${ids.user1}`
+    );
+    const user1 = await data1.json();
     const user2Id = overriddenUser2 || ids.user2;
 
-    const data = await fetch(
+    const data2 = await fetch(
       `https://livecounts.xyz/api/instagram-live-follower-count/live/${user2Id}`
     );
-    const user2 = await data.json();
+    const user2 = await data2.json();
 
-    const user1Count = user1.counts[0];
+    const user1Followers = user1.stats.estCount;
+    const user1Following = user1.stats.viewCount;
+    const user1Posts = user1.stats.videoCount;
     const user2Followers = user2.counts[0];
     const user2Following = user2.counts[1];
     const user2Posts = user2.counts[2];
 
-    const gap = Math.abs(user2Followers - user1Count);
+    const gap = Math.abs(user2Followers - user1Followers);
 
     res.json({
       t: new Date(),
       gap: gap,
       counts: [
-        [ids.platform1, ids.user1, user1Count, user1.counts[3], user1.counts[5]],
+        [ids.platform1, ids.user1, user1Followers, user1Following, user1Posts],
         [ids.platform2, user2Id, user2Followers, user2Following, user2Posts]
       ],
     });
