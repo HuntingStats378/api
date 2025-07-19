@@ -65,10 +65,10 @@ function abbreviateNumber(num) {
 }
 
 async function getArcaneTop100Leaderboard(server) {
-    const ARCANE_API_BASE = `https://arcane.bot/api/guilds/${server}/levels/leaderboard`;
+    const base = `https://arcane.bot/api/guilds/${server}/levels/leaderboard`;
     const [res50, res100] = await Promise.all([
-        fetch(`${ARCANE_API_BASE}?limit=50&page=0`, { headers: HEADERS }),
-        fetch(`${ARCANE_API_BASE}?limit=50&page=1`, { headers: HEADERS })
+        fetch(`${base}?limit=50&page=0`, { headers: HEADERS }),
+        fetch(`${base}?limit=50&page=1`, { headers: HEADERS })
     ]);
 
     const data50 = await res50.json();
