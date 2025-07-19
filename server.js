@@ -16,6 +16,12 @@ const wsszu = new WebSocket.Server({ server, path: "/websocket/szaszabi-upload" 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 let latestSzaSzabiUpload = null;
 let overriddenUser2 = null; // Store override in memory
+const ARCANE_API_KEY = process.env.ARCANE_API_KEY;
+const HEADERS = {
+    'Accept': 'application/json, text/plain, */*',
+    'x-user-agent': 'Arcane-Bot-5.0',
+    'Authorization': ARCANE_API_KEY
+};
 
 bot.login(BOT_TOKEN);
 
@@ -574,13 +580,6 @@ ipad_uptime.on('connection', async function connection(ws, req) {
     }
   });
 });
-
-const ARCANE_API_KEY = process.env.ARCANE_API_KEY;
-const HEADERS = {
-    'Accept': 'application/json, text/plain, */*',
-    'x-user-agent': 'Arcane-Bot-5.0',
-    'Authorization': ARCANE_API_KEY
-};
 
 app.get('/api/discord/arcane/top100/:server', async (req, res) => {
     res.json(await getArcaneTop100Leaderboard(server));
