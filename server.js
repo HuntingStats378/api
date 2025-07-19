@@ -79,6 +79,7 @@ async function getArcaneTop100Leaderboard(server) {
 
     const data50 = await res50.json();
     const data100 = await res100.json();
+    console.log(data50, data100);
 
     const top50 = Array.isArray(data50.levels) ? data50.levels : [];
     const top100 = Array.isArray(data100.levels) ? data100.levels : [];
