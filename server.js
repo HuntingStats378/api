@@ -72,19 +72,16 @@ function abbreviateNumber(num) {
 
 async function getArcaneTop100Leaderboard(server) {
     const base = `https://arcane.bot/api/guilds/${server}/levels/leaderboard`;
-    const [res50, res100] = await Promise.all([
-        fetch(`${base}?limit=50&page=0`, { headers: HEADERS }),
-        fetch(`${base}?limit=50&page=1`, { headers: HEADERS })
+    const [res100] = await Promise.all([
+        fetch(`${base}?limit=100&page=0`, { headers: HEADERS }))
     ]);
 
-    const data50 = await res50.json();
     const data100 = await res100.json();
-    console.log(data50, data100);
+    console.log(data100);
 
-    const top50 = Array.isArray(data50.levels) ? data50.levels : [];
     const top100 = Array.isArray(data100.levels) ? data100.levels : [];
 
-    return [...top50, ...top100];
+    return [...top100];
 }
 
 async function fetchLatestSzaSzabiUpload() {
