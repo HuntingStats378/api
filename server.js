@@ -64,49 +64,20 @@ function abbreviateNumber(num) {
     }
 }
 
-async function getTop100Leaderboard() {
-    const [res50, res100, res150, res200, res250, res300, res350, res400, res450, res500, res550, res600] = await Promise.all([
+async function getArcaneTop100Leaderboard(server) {
+    const ARCANE_API_BASE = `https://arcane.bot/api/guilds/${server}/levels/leaderboard`;
+    const [res50, res100] = await Promise.all([
         fetch(`${ARCANE_API_BASE}?limit=50&page=0`, { headers: HEADERS }),
-        fetch(`${ARCANE_API_BASE}?limit=50&page=1`, { headers: HEADERS }),
-        fetch(`${ARCANE_API_BASE}?limit=50&page=2`, { headers: HEADERS }),
-        fetch(`${ARCANE_API_BASE}?limit=50&page=3`, { headers: HEADERS }),
-        fetch(`${ARCANE_API_BASE}?limit=50&page=4`, { headers: HEADERS }),
-        fetch(`${ARCANE_API_BASE}?limit=50&page=5`, { headers: HEADERS }),
-        fetch(`${ARCANE_API_BASE}?limit=50&page=6`, { headers: HEADERS }),
-        fetch(`${ARCANE_API_BASE}?limit=50&page=7`, { headers: HEADERS }),
-        fetch(`${ARCANE_API_BASE}?limit=50&page=8`, { headers: HEADERS }),
-        fetch(`${ARCANE_API_BASE}?limit=50&page=9`, { headers: HEADERS }),
-        fetch(`${ARCANE_API_BASE}?limit=50&page=10`, { headers: HEADERS }),
-        fetch(`${ARCANE_API_BASE}?limit=50&page=11`, { headers: HEADERS })
+        fetch(`${ARCANE_API_BASE}?limit=50&page=1`, { headers: HEADERS })
     ]);
 
     const data50 = await res50.json();
     const data100 = await res100.json();
-    const data150 = await res150.json();
-    const data200 = await res200.json();
-    const data250 = await res250.json();
-    const data300 = await res300.json();
-    const data350 = await res350.json();
-    const data400 = await res400.json();
-    const data450 = await res450.json();
-    const data500 = await res500.json();
-    const data550 = await res550.json();
-    const data600 = await res600.json();
 
     const top50 = Array.isArray(data50.levels) ? data50.levels : [];
     const top100 = Array.isArray(data100.levels) ? data100.levels : [];
-    const top150 = Array.isArray(data150.levels) ? data150.levels : [];
-    const top200 = Array.isArray(data200.levels) ? data200.levels : [];
-    const top250 = Array.isArray(data250.levels) ? data250.levels : [];
-    const top300 = Array.isArray(data300.levels) ? data300.levels : [];
-    const top350 = Array.isArray(data350.levels) ? data350.levels : [];
-    const top400 = Array.isArray(data400.levels) ? data400.levels : [];
-    const top450 = Array.isArray(data450.levels) ? data450.levels : [];
-    const top500 = Array.isArray(data500.levels) ? data500.levels : [];
-    const top550 = Array.isArray(data550.levels) ? data550.levels : [];
-    const top600 = Array.isArray(data600.levels) ? data600.levels : [];
 
-    return [...top50, ...top100, ...top150, ...top200, ...top250, ...top300, ...top350, ...top400, ...top450, ...top500, ...top550, ...top600];
+    return [...top50, ...top100];
 }
 
 async function fetchLatestSzaSzabiUpload() {
@@ -604,7 +575,6 @@ ipad_uptime.on('connection', async function connection(ws, req) {
   });
 });
 
-const ARCANE_API_BASE = 'https://arcane.bot/api/guilds/1150096734576451614/levels/leaderboard';
 const ARCANE_API_KEY = process.env.ARCANE_API_KEY;
 const HEADERS = {
     'Accept': 'application/json, text/plain, */*',
@@ -612,13 +582,13 @@ const HEADERS = {
     'Authorization': ARCANE_API_KEY
 };
 
-app.get('/api/discord/statistics/top100', async (req, res) => {
-    res.json(await getTop100Leaderboard());
+app.get('/api/discord/arcane/top100/:server', async (req, res) => {
+    res.json(await getArcaneTop100Leaderboard(server));
 });
 
-app.get('/api/discord/statistics/:id', async (req, res) => {
+app.get('/api/discord/arcane/:id/:server', async (req, res) => {
     const id = req.params.id;
-    const combinedData = await getTop100Leaderboard();
+    const combinedData = await getArcaneTop100Leaderboard(server);
     const found = combinedData.find(entry => entry.id === id);
 
     if (found) {
