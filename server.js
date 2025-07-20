@@ -18,9 +18,18 @@ let latestSzaSzabiUpload = null;
 let overriddenUser2 = null; // Store override in memory
 const ARCANE_API_KEY = process.env.ARCANE_API_KEY;
 const HEADERS = {
-    'accept': 'application/json, text/plain, */*',
-    'x-user-agent': 'Arcane-Bot-5.0',
-    'authorization': ARCANE_API_KEY
+    "accept": "application/json, text/plain, */*",
+    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8,pt;q=0.7",
+    "authorization": ARCANE_API_KEY,
+    "if-none-match": "W/\"de3e-F4Q3Pl3thCt0unfPKV0M1Jnj69Y\"",
+    "priority": "u=1, i",
+    "sec-ch-ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "x-user-agent": "Arcane-Bot-5.0"
 };
 
 bot.login(BOT_TOKEN);
