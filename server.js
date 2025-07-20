@@ -18,9 +18,9 @@ let latestSzaSzabiUpload = null;
 let overriddenUser2 = null; // Store override in memory
 const ARCANE_API_KEY = process.env.ARCANE_API_KEY;
 const HEADERS = {
-    'Accept': 'application/json, text/plain, */*',
+    'accept': 'application/json, text/plain, */*',
     'x-user-agent': 'Arcane-Bot-5.0',
-    'Authorization': ARCANE_API_KEY
+    'authorization': ARCANE_API_KEY
 };
 
 bot.login(BOT_TOKEN);
