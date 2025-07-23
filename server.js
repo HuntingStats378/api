@@ -313,7 +313,14 @@ async function fetchtwitteruser(userId) {
 
 async function fetchlurkrlevels(serverId, page) {
   try {
-    const response = await fetch(`https://api.lurkr.gg/v2/levels/${serverId}?page=${page}`, {headers: {"X-API-Key": LURKR_API_KEY}});
+    const response = await fetch(`https://api.lurkr.gg/v2/levels/${serverId}?page=${page}`, {
+      headers: { "X-API-Key": LURKR_API_KEY }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Lurkr API error: ${response.status}`);
+    }
+
     return await response.json();
   } catch (error) {
     console.error(error);
@@ -352,9 +359,15 @@ app.get("/api/twitter/user/:id", async (req, res) => {
 });
 
 app.get("/api/lurkr/levels/:id/:page", async (req, res) => {
-  const { id } = req.params;
-    const { page } = req.params;
-  res.json(await fetchlurkrlevels(id, page));
+  const { id, page } = req.params;
+  const pageNumber = parseInt(page);
+  
+  if (isNaN(pageNumber) || pageNumber < 1) {
+    return res.status(400).json({ error: "Invalid page number" });
+  }
+
+  const result = await fetchlurkrlevels(id, pageNumber);
+  res.json(result);
 });
 
 // API route to get YouTube live subscriber count
