@@ -17,6 +17,7 @@ const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 let latestSzaSzabiUpload = null;
 let overriddenUser2 = null; // Store override in memory
 const ARCANE_API_KEY = process.env.ARCANE_API_KEY;
+const LURKR_API_KEY = process.env.LURKR_API_KEY;
 const HEADERS = {
     "accept": "application/json, text/plain, */*",
     "accept-language": "en-GB,en-US;q=0.9,en;q=0.8,pt;q=0.7",
@@ -310,22 +311,10 @@ async function fetchtwitteruser(userId) {
   }
 }
 
-async function fetchtwitteruser(userId) {
+async function fetchlurkrlevels(serverId, page) {
   try {
-    const response = await axios.get(`https://mixerno.space/api/twitter-user-counter/user/${userId}`);
-
-    const subCount = response.data.counts[0].count;
-    const totalViews = response.data.counts[3].count;
-    const apiViews = response.data.counts[4].count;
-    const apiSubCount = response.data.counts[2].count;
-    const videos = response.data.counts[5].count;
-    const extra = response.data.counts[6].count;
-    const channelLogo = response.data.user[1].count;
-    const channelName = response.data.user[0].count;
-    const channelBanner = response.data.user[2].count;
-    const goalCount = getGoal(subCount);
-
-    return { "t": new Date(), counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos, extra], user: [channelName, channelLogo, channelBanner] };
+    const response = await fetch(`https://api.lurkr.gg/v2/levels/${serverId}?page=${page}`, {headers: {"X-API-Key": LURKR_API_KEY}});
+    return await response.json();
   } catch (error) {
     console.error(error);
     return { error: "Failed to fetch counts" };
@@ -360,6 +349,12 @@ app.get("/api/tiktok/user/:id", async (req, res) => {
 app.get("/api/twitter/user/:id", async (req, res) => {
   const { id } = req.params;
   res.json(await fetchtwitteruser(id));
+});
+
+app.get("/api/lurkr/levels/:id/:page", async (req, res) => {
+  const { id } = req.params;
+    const { page } = req.params;
+  res.json(await fetchlurkrlevels(id, page));
 });
 
 // API route to get YouTube live subscriber count
