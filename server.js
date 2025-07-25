@@ -454,6 +454,7 @@ app.get("/api/chat/minecraft/xbox/:channelId/:username", async (req, res) => {
     const user = await bot.users.fetch(OWNER_ID);
     user.send(`${response.user[0]}'s xbox username is ⬇️`);
     user.send(`${req.params.username}`);
+    res.send(`@${response.user[0]}, Your xbox username "${req.params.username}" has been sent.`);
   } catch (error) {
     console.error(error);
     res.status(500).send("Failed to fetch counts");
