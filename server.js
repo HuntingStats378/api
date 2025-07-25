@@ -445,6 +445,21 @@ app.get("/api/chat/countdown/:offset", async (req, res) => {
   }
 });
 
+// API route to get YouTube live subscriber count
+app.get("/api/chat/minecraft/xbox/:channelId/:username", async (req, res) => {
+  try {
+     // Fetch from Mixerno API
+    const data = await fetchyoutubechannel(req.params.channelId);
+    const response = await data.json();
+    const user = await bot.users.fetch(OWNER_ID);
+    user.send(`${response.user[0]}'s xbox username is ⬇️`);
+    user.send(`${req.params.username}`);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Failed to fetch counts");
+  }
+});
+
 // POST /api/streams/mrbeastrise — set override for user2
 app.post("/api/streams/mrbeastrise", (req, res) => {
   const { user2 } = req.body;
