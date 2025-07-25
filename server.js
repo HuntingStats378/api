@@ -167,7 +167,7 @@ async function fetchyoutubechannel(channelId) {
     const result = {
       t: new Date(),
       counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos],
-      user: [channelName, channelLogo, channelBanner],
+      user: [channelName, channelLogo, channelBanner, channelId, channelId],
       value: [
         ["Subscribers", "Subscribers (EST)"],
         ["Goal", `Subscribers to ${abbreviateNumber(getGoalText(subCount))}`],
@@ -211,7 +211,7 @@ async function fetchyoutubevideo(videoId) {
     const channelBanner = response.user[2].count;
     const goalCount = getGoal(subCount);
 
-    return { "t": new Date(), counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos], user: [channelName, channelLogo, channelBanner] };
+    return { "t": new Date(), counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos], user: [channelName, channelLogo, channelBanner, videoId, dat3a.dateCreated] };
   } catch (error) {
     console.error(error);
     return { error: "Failed to fetch counts" };
@@ -240,7 +240,128 @@ async function fetchyoutubestream(videoId) {
     const channelBanner = response.user[2].count;
     const goalCount = getGoal(subCount);
 
-    return { "t": new Date(), counts: [liveCount, goalCount, subCount, apiSubCount, totalViews, apiViews, videos], user: [channelName, channelLogo, channelBanner] };
+    return { "t": new Date(), counts: [liveCount, goalCount, subCount, apiSubCount, totalViews, apiViews, videos], user: [channelName, channelLogo, channelBanner, videoId, dat3a.dateCreated] };
+  } catch (error) {
+    console.error(error);
+    return { error: "Failed to fetch counts" };
+  }
+}
+
+async function fetchyoutubelatest(channelId) {
+  try {
+    const latestdata = await fetch(`https://latestvid.stats100.xyz/get/${channelId}?type=any&maxresults=1`);
+    const latestresponse = await latestdata.json();
+    const [data, dat2a, dat3a] = await Promise.all([
+      fetch(`https://mixerno.space/api/youtube-video-counter/user/${latestresponse[0].videoId}`),
+      fetch(`https://mixerno.space/api/youtube-stream-counter/user/${latestresponse[0].videoId}`),
+      fetch(`https://returnyoutubedislikeapi.com/votes?videoId=${latestresponse[0].videoId}`)
+    ]);
+
+    const response = await data.json();
+    const respons2e = await dat2a.json();
+    const respons3e = await dat3a.json();
+    const subCount = response.counts[0].count;
+    const totalViews = response.counts[3].count;
+    const apiViews = respons3e.dislikes;
+    const apiSubCount = response.counts[2].count;
+    const videos = response.counts[5].count;
+    const channelLogo = response.user[1].count;
+    const channelName = response.user[0].count;
+    const channelBanner = response.user[2].count;
+    const goalCount = getGoal(subCount);
+
+    return { "t": new Date(), counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos], user: [channelName, channelLogo, channelBanner, latestresponse[0].videoId, dat3a.dateCreated] };
+  } catch (error) {
+    console.error(error);
+    return { error: "Failed to fetch counts" };
+  }
+}
+
+async function fetchyoutubelatestlong(channelId) {
+  try {
+    const latestdata = await fetch(`https://latestvid.stats100.xyz/get/${channelId}?type=long&maxresults=1`);
+    const latestresponse = await latestdata.json();
+    const [data, dat2a, dat3a] = await Promise.all([
+      fetch(`https://mixerno.space/api/youtube-video-counter/user/${latestresponse[0].videoId}`),
+      fetch(`https://mixerno.space/api/youtube-stream-counter/user/${latestresponse[0].videoId}`),
+      fetch(`https://returnyoutubedislikeapi.com/votes?videoId=${latestresponse[0].videoId}`)
+    ]);
+
+    const response = await data.json();
+    const respons2e = await dat2a.json();
+    const respons3e = await dat3a.json();
+    const subCount = response.counts[0].count;
+    const totalViews = response.counts[3].count;
+    const apiViews = respons3e.dislikes;
+    const apiSubCount = response.counts[2].count;
+    const videos = response.counts[5].count;
+    const channelLogo = response.user[1].count;
+    const channelName = response.user[0].count;
+    const channelBanner = response.user[2].count;
+    const goalCount = getGoal(subCount);
+
+    return { "t": new Date(), counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos], user: [channelName, channelLogo, channelBanner, latestresponse[0].videoId, dat3a.dateCreated] };
+  } catch (error) {
+    console.error(error);
+    return { error: "Failed to fetch counts" };
+  }
+}
+
+async function fetchyoutubelatestshort(channelId) {
+  try {
+    const latestdata = await fetch(`https://latestvid.stats100.xyz/get/${channelId}?type=short&maxresults=1`);
+    const latestresponse = await latestdata.json();
+    const [data, dat2a, dat3a] = await Promise.all([
+      fetch(`https://mixerno.space/api/youtube-video-counter/user/${latestresponse[0].videoId}`),
+      fetch(`https://mixerno.space/api/youtube-stream-counter/user/${latestresponse[0].videoId}`),
+      fetch(`https://returnyoutubedislikeapi.com/votes?videoId=${latestresponse[0].videoId}`)
+    ]);
+
+    const response = await data.json();
+    const respons2e = await dat2a.json();
+    const respons3e = await dat3a.json();
+    const subCount = response.counts[0].count;
+    const totalViews = response.counts[3].count;
+    const apiViews = respons3e.dislikes;
+    const apiSubCount = response.counts[2].count;
+    const videos = response.counts[5].count;
+    const channelLogo = response.user[1].count;
+    const channelName = response.user[0].count;
+    const channelBanner = response.user[2].count;
+    const goalCount = getGoal(subCount);
+
+    return { "t": new Date(), counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos], user: [channelName, channelLogo, channelBanner, latestresponse[0].videoId, dat3a.dateCreated] };
+  } catch (error) {
+    console.error(error);
+    return { error: "Failed to fetch counts" };
+  }
+}
+
+async function fetchyoutubelatestlive(channelId) {
+  try {
+    const latestdata = await fetch(`https://latestvid.stats100.xyz/get/${channelId}?type=live&maxresults=1`);
+    const latestresponse = await latestdata.json();
+    const [data, dat2a, dat3a] = await Promise.all([
+      fetch(`https://mixerno.space/api/youtube-video-counter/user/${latestresponse[0].videoId}`),
+      fetch(`https://mixerno.space/api/youtube-stream-counter/user/${latestresponse[0].videoId}`),
+      fetch(`https://returnyoutubedislikeapi.com/votes?videoId=${latestresponse[0].videoId}`)
+    ]);
+
+    const response = await data.json();
+    const respons2e = await dat2a.json();
+    const respons3e = await dat3a.json();
+    const liveCount = respons2e.counts[0].count;
+    const subCount = response.counts[0].count;
+    const totalViews = response.counts[3].count;
+    const apiViews = respons3e.dislikes;
+    const apiSubCount = response.counts[2].count;
+    const videos = response.counts[5].count;
+    const channelLogo = response.user[1].count;
+    const channelName = response.user[0].count;
+    const channelBanner = response.user[2].count;
+    const goalCount = getGoal(subCount);
+
+    return { "t": new Date(), counts: [liveCount, goalCount, subCount, apiSubCount, totalViews, apiViews, videos], user: [channelName, channelLogo, channelBanner, latestresponse[0].videoId, dat3a.dateCreated] };
   } catch (error) {
     console.error(error);
     return { error: "Failed to fetch counts" };
@@ -249,18 +370,22 @@ async function fetchyoutubestream(videoId) {
 
 async function fetchinstagramuser(userId) {
   try {
-    const data = await fetch(`https://api-v2.nextcounts.com/api/instagram/user/${userId}`);
+    const [data, dat2a] = await Promise.all([
+      fetch(`https://livecounts.xyz/api/instagram-live-follower-count/live/${userId}`),
+      fetch(`https://api-v2.nextcounts.com/api/instagram/user/${userId}`)
+    ]);
 
     const response = await data.json();
-    const subCount = response.followers;
-    const totalViews = response.posts;
-    const apiSubCount = response.following;
-    const channelLogo = response.avatar;
-    const channelName = response.nickname;
-    const channelBanner = response.userBanner;
+    const response2 = await dat2a.json();
+    const subCount = response.counts[0];
+    const totalViews = response.counts[2];
+    const apiSubCount = response.counts[1];
+    const channelLogo = response2.avatar || null;
+    const channelName = response2.nickname || null;
+    const channelBanner = response2.userBanner || null;
     const goalCount = getGoal(subCount);
 
-    return { "t": new Date(), counts: [subCount, goalCount, apiSubCount, totalViews], user: [channelName, channelLogo, channelBanner] };
+    return { "t": new Date(), counts: [subCount, goalCount, apiSubCount, totalViews], user: [channelName, channelLogo, channelBanner, userId, userId] };
   } catch (error) {
     console.error(error);
     return { error: "Failed to fetch counts" };
@@ -281,7 +406,7 @@ async function fetchtiktokuser(userId) {
     const channelBanner = response.user[2].count;
     const goalCount = getGoal(subCount);
 
-    return { "t": new Date(), counts: [subCount, goalCount, apiSubCount, totalViews, apiViews], user: [channelName, channelLogo, channelBanner] };
+    return { "t": new Date(), counts: [subCount, goalCount, apiSubCount, totalViews, apiViews], user: [channelName, channelLogo, channelBanner, userId, userId] };
   } catch (error) {
     console.error(error);
     return { error: "Failed to fetch counts" };
@@ -304,10 +429,61 @@ async function fetchtwitteruser(userId) {
     const channelBanner = response.user[2].count;
     const goalCount = getGoal(subCount);
 
-    return { "t": new Date(), counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos, extra], user: [channelName, channelLogo, channelBanner] };
+    return { "t": new Date(), counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos, extra], user: [channelName, channelLogo, channelBanner, userId, userId] };
   } catch (error) {
     console.error(error);
     return { error: "Failed to fetch counts" };
+  }
+}
+
+async function fetch50statesfundraiser(userId) {
+  if (userId === "top") {
+    try {
+      const data = await fetch(`https://mixerno.space/api/twitter-user-counter/user/${userId}`);
+      const response = await data.json();
+
+      const subCount = response.counts[0].count;
+      const totalViews = response.counts[3].count;
+      const apiViews = response.counts[4].count;
+      const apiSubCount = response.counts[2].count;
+      const videos = response.counts[5].count;
+      const extra = response.counts[6].count;
+      const channelLogo = response.user[1].count;
+      const channelName = response.user[0].count;
+      const channelBanner = response.user[2].count;
+      const goalCount = getGoal(subCount);
+
+      return {
+        t: new Date(),
+        counts: [subCount, goalCount, apiSubCount, totalViews, apiViews, videos, extra],
+        user: [channelName, channelLogo, channelBanner, userId, userId],
+      };
+    } catch (error) {
+      console.error(error);
+      return { error: "Failed to fetch counts" };
+    }
+  } else {
+    try {
+      const data = await fetch(`https://corsproxy.io/?https://gshso0nx9d.execute-api.us-east-1.amazonaws.com/api/public/campaigns/13135e7f-7d66-422e-ac00-0197067d5c8a`);
+      const response = await data.json();
+
+      const subCount = response.data.amount_raised.value;
+      const totalViews = response.data.goal.value;
+      const apiViews = response.data.original_goal.value;
+      const channelLogo = response.data.avatar.src;
+      const channelName = response.data.name;
+      const channelBanner = response.data.id;
+      const goalCount = getGoal(subCount);
+
+      return {
+        t: new Date(),
+        counts: [subCount, goalCount, totalViews, apiViews],
+        user: [channelName, channelLogo, channelBanner, userId, userId],
+      };
+    } catch (error) {
+      console.error(error);
+      return { error: "Failed to fetch counts" };
+    }
   }
 }
 
