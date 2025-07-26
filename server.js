@@ -81,12 +81,12 @@ function abbreviateNumber(num) {
 }
 
 async function getArcaneTop100Leaderboard(server) {
-    console.log(“here1”);
     const base = `https://arcane.bot/api/guilds/${server}/levels/leaderboard`;
     const [res100] = await Promise.all([
         fetch(`${base}?limit=100&page=0`, { headers: HEADERS })
     ]);
 
+    console.log(“here1”);
     const data100 = await res100.json();
     console.log(data100);
 
