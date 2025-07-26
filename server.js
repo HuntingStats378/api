@@ -80,17 +80,33 @@ function abbreviateNumber(num) {
     }
 }
 
-async function getArcaneTop100Leaderboard(server) {
+async function getArcaneTopLeaderboard(server, pageCount = 1, limit = 100) {
     const base = `https://arcane.bot/api/guilds/${server}/levels/leaderboard`;
-    const [res100] = await Promise.all([
-        fetch(`${base}?limit=100&page=0`, { headers: HEADERS })
-    ]);
+    const requests = [];
 
-    const data100 = await res100.json();
+    for (let i = 0; i < pageCount; i++) {
+        requests.push(fetch(`${base}?limit=${limit}&page=${i}`, { headers: HEADERS }));
+    }
 
-    const top100 = Array.isArray(data100.levels) ? data100.levels : [];
+    const responses = await Promise.all(requests);
+    const jsonData = await Promise.all(responses.map(res => res.json()));
 
-    return [...top100];
+    const levels = [];
+    let xpOptions = null;
+
+    for (const data of jsonData) {
+        if (Array.isArray(data.levels)) {
+            levels.push(...data.levels);
+        }
+        if (!xpOptions && data.xp_options) {
+            xpOptions = data.xp_options;
+        }
+    }
+
+    return {
+        levels,
+        xpOptions
+    };
 }
 
 async function fetchLatestSzaSzabiUpload() {
