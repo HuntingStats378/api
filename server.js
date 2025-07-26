@@ -789,6 +789,7 @@ ipad_uptime.on('connection', async function connection(ws, req) {
 });
 
 app.get('/api/discord/arcane/top100/:server', async (req, res) => {
+    const server = req.params.server;
     res.json(await getArcaneTop100Leaderboard(server));
 });
 
