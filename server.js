@@ -80,7 +80,7 @@ function abbreviateNumber(num) {
     }
 }
 
-async function getArcaneTopLeaderboard(server, pageCount = 1, limit = 100) {
+async function getArcaneTop100Leaderboard(server, pageCount = 1, limit = 100) {
     const base = `https://arcane.bot/api/guilds/${server}/levels/leaderboard`;
     const requests = [];
 
