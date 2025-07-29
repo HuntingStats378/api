@@ -819,6 +819,16 @@ app.get('/api/discord/arcane/:id/:server', async (req, res) => {
     }
 });
 
+app.get('/api/database', async (req, res) => {
+    res.json(await saveData());
+});
+
+app.get('/api/database/add/:platform/:user', async (req, res) => {
+    const platform = req.params.platform;
+    const user = req.params.user;
+    res.json(await saveData(platform, user));
+});
+
 // Fetch the latest upload every hour
 setInterval(fetchLatestSzaSzabiUpload, 1000 * 60 * 60);
 
