@@ -3,7 +3,6 @@ const axios = require("axios");
 const cors = require("cors");
 const http = require('http');
 const WebSocket = require('ws');
-const puppeteer = require('puppeteer');
 const { Client, GatewayIntentBits } = require('discord.js');
 const app = express();
 app.use(cors());
@@ -19,11 +18,6 @@ let latestSzaSzabiUpload = null;
 let overriddenUser2 = null; // Store override in memory
 const ARCANE_API_KEY = process.env.ARCANE_API_KEY;
 const LURKR_API_KEY = process.env.LURKR_API_KEY;
-let targetElementId = 'liveCounter'; // Default ID
-let isSiteLive = false;
-let lastKnownValue = null;
-let interval = null;
-const CHECK_INTERVAL = 30_000; // 30 seconds
 const HEADERS = {
     "accept": "application/json, text/plain, */*",
     "accept-language": "en-GB,en-US;q=0.9,en;q=0.8,pt;q=0.7",
@@ -838,129 +832,10 @@ app.get('/api/database/add/:platform/:user', async (req, res) => {
 // Fetch the latest upload every hour
 setInterval(fetchLatestSzaSzabiUpload, 1000 * 60 * 60);
 
-// === TeamWater WebSocket Server Setup ===
-const teamwater = new WebSocket.Server({ server, path: '/websocket/teamwater' });
-
-async function sendDiscordDM(message) {
-  try {
-    const user = await bot.users.fetch(OWNER_ID);
-    await user.send(message);
-    console.log('📬 Sent DM');
-  } catch (err) {
-    console.error('❌ DM error:', err.message);
-  }
-}
-
-// ========== Redirect Checker ==========
-async function checkIfLive() {
-  try {
-    const res = await fetch('https://teamwater.org', {
-      redirect: 'manual'
-    });
-
-    if (res.status === 301 || res.status === 302) {
-      console.log('🔁 Still redirecting to soon.teamwater.org');
-    } else {
-      console.log('✅ teamwater.org is now live!');
-      isSiteLive = true;
-      await sendDiscordDM(`🌊 teamwater.org is now live! Watching for element: #${targetElementId}`);
-      startScraping();
-    }
-  } catch (err) {
-    console.error('🌐 Redirect check failed:', err.message);
-  }
-}
-
-// ========== WebSocket ==========
-function broadcast(data) {
-  const json = JSON.stringify(data);
-  teamwater.clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(json);
-    }
-  });
-}
-
-// ========== Scraper ==========
-async function getElementText() {
-  const browser = await puppeteer.launch({ headless: 'new' });
-  const page = await browser.newPage();
-  await page.goto('https://teamwater.org', { waitUntil: 'networkidle2' });
-
-  const value = await page.evaluate(id => {
-    const el = document.getElementById(id);
-    return el?.textContent?.trim() || null;
-  }, targetElementId);
-
-  await browser.close();
-  return value;
-}
-
-function startScraping() {
-  interval = setInterval(async () => {
-    try {
-      const value = await getElementText();
-      if (value && value !== lastKnownValue) {
-        lastKnownValue = value;
-        console.log(`📈 #${targetElementId} = ${value}`);
-        broadcast({ type: 'counter', data: { id: targetElementId, value } });
-      }
-    } catch (err) {
-      console.error('Scraping error:', err.message);
-    }
-  }, 2000);
-}
-
-// ========== API Routes ==========
-
-// Keep Render awake + allow override
-app.get('/ping', (req, res) => {
-  if (req.query.id) {
-    targetElementId = req.query.id;
-    console.log(`🔄 Updated element ID to: ${targetElementId}`);
-  }
-  res.send(`✅ Ping received. Monitoring ID: #${targetElementId}`);
-});
-
-// Root
-app.get('/', (req, res) => {
-  res.send('🌊 TeamWater monitor running');
-});
-
-// WebSocket
-teamwater.on('connection', (ws) => {
-  console.log('🔌 WebSocket client connected');
-
-  // Immediately send placeholder or last known value
-  if (isSiteLive && lastKnownValue) {
-    ws.send(JSON.stringify({ type: 'counter', data: { id: targetElementId, value: lastKnownValue } }));
-  } else {
-    ws.send(JSON.stringify({ type: 'counter', data: { id: targetElementId, value: "0" } }));
-  }
-
-  // Start sending 0s every 2s until the site goes live
-  const preLaunchInterval = setInterval(() => {
-    if (isSiteLive && lastKnownValue) {
-      ws.send(JSON.stringify({ type: 'counter', data: { id: targetElementId, value: lastKnownValue } }));
-    } else {
-      ws.send(JSON.stringify({ type: 'counter', data: { id: targetElementId, value: "0" } }));
-    }
-  }, 2000);
-
-  ws.on('close', () => {
-    clearInterval(preLaunchInterval);
-    console.log('🔌 WebSocket client disconnected');
-  });
-});
-
 module.exports = app;
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     fetchLatestSzaSzabiUpload(); // Fetch initial data on startup
-    setInterval(() => {
-    if (!isSiteLive) checkIfLive();
-    }, CHECK_INTERVAL);
-    checkIfLive();
 });
