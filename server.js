@@ -928,11 +928,29 @@ app.get('/', (req, res) => {
 });
 
 // WebSocket
-teamwater.on('connection', ws => {
-  console.log('🔌 WS client connected');
-  if (lastKnownValue) {
+teamwater.on('connection', (ws) => {
+  console.log('🔌 WebSocket client connected');
+
+  // Immediately send placeholder or last known value
+  if (isSiteLive && lastKnownValue) {
     ws.send(JSON.stringify({ type: 'counter', data: { id: targetElementId, value: lastKnownValue } }));
+  } else {
+    ws.send(JSON.stringify({ type: 'counter', data: { id: targetElementId, value: "0" } }));
   }
+
+  // Start sending 0s every 2s until the site goes live
+  const preLaunchInterval = setInterval(() => {
+    if (isSiteLive && lastKnownValue) {
+      ws.send(JSON.stringify({ type: 'counter', data: { id: targetElementId, value: lastKnownValue } }));
+    } else {
+      ws.send(JSON.stringify({ type: 'counter', data: { id: targetElementId, value: "0" } }));
+    }
+  }, 2000);
+
+  ws.on('close', () => {
+    clearInterval(preLaunchInterval);
+    console.log('🔌 WebSocket client disconnected');
+  });
 });
 
 module.exports = app;
