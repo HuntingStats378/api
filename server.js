@@ -832,6 +832,29 @@ app.get('/api/database/add/:platform/:user', async (req, res) => {
 // Fetch the latest upload every hour
 setInterval(fetchLatestSzaSzabiUpload, 1000 * 60 * 60);
 
+// Simple CORS proxy
+app.get("/corsproxy", async (req, res) => {
+  const { url } = req.query;
+
+  if (!url) return res.status(400).json({ error: "Missing URL parameter" });
+
+  try {
+    const response = await fetch(url);
+    const contentType = response.headers.get("content-type") || "text/plain";
+    const data = await response.text();
+
+    // Add CORS headers
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "*");
+    res.set("Content-Type", contentType);
+
+    res.send(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = app;
 
 const PORT = process.env.PORT || 3000;
