@@ -176,21 +176,23 @@ async function getArcaneTop100Leaderboard(server, pageCount = 1, limit = 100) {
   };
 }
 
-async function fetchLatestSzaSzabiUpload() {
+async function fetchLatestSzaSzabiUpload(YOUTUBE_API_KEY, wss) {
   try {
     const response = await axios.get(
       `https://www.googleapis.com/youtube/v3/search?key=${YOUTUBE_API_KEY}&channelId=UCx2ey9QUf1Ja4sV3EdavwSg&part=snippet&order=date&type=video&maxResults=1`
     );
 
     if (response.data.items.length > 0) {
-      latestSzaSzabiUpload = response.data.items[0];
+      const latestSzaSzabiUpload = response.data.items[0];
 
-      // Broadcast update to all WebSocket clients
-      wsszu.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
+      // Broadcast ONLY to clients on the "upload" path
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN && client.path === "upload") {
           client.send(JSON.stringify(latestSzaSzabiUpload));
         }
       });
+
+      return latestSzaSzabiUpload;
     }
   } catch (error) {
     console.error("Error fetching latest upload:", error.message);
