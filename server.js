@@ -13,6 +13,7 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 const OWNER_ID = process.env.OWNER_ID;
 const server = http.createServer(app);
 const wsszu = new WebSocket.Server({ server, path: "/websocket/szaszabi-upload" });
+const second = new WebSocket.Server({ server, path: "/websocket/second" });
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 let latestSzaSzabiUpload = null;
 let overriddenUser2 = null; // Store override in memory
@@ -775,6 +776,31 @@ wsszu.on("connection", (ws) => {
     if (latestSzaSzabiUpload) {
         ws.send(JSON.stringify(latestSzaSzabiUpload));
     }
+});
+
+second.on("connection", (ws) => {
+  console.log("🔗 Render client connected");
+
+  let lastSecond = null;
+
+  const interval = setInterval(() => {
+    const now = new Date();
+    const currentSecond = now.getUTCSeconds();
+
+    if (currentSecond !== lastSecond) {
+      lastSecond = currentSecond;
+
+      ws.send(JSON.stringify({
+        type: "renderTime",
+        utc: now.toISOString()
+      }));
+    }
+  }, 50); // check often, but only send once per new second
+
+  ws.on("close", () => {
+    clearInterval(interval);
+    console.log("❌ Render client disconnected");
+  });
 });
 
 // === WebSocket Server Setup ===
