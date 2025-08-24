@@ -19,112 +19,112 @@ let overriddenUser2 = null; // Store override in memory
 const ARCANE_API_KEY = process.env.ARCANE_API_KEY;
 const LURKR_API_KEY = process.env.LURKR_API_KEY;
 const HEADERS = {
-    "accept": "application/json, text/plain, */*",
-    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8,pt;q=0.7",
-    "authorization": ARCANE_API_KEY,
-    "if-none-match": "W/\"de3e-F4Q3Pl3thCt0unfPKV0M1Jnj69Y\"",
-    "priority": "u=1, i",
-    "sec-ch-ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
-    "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": "\"Windows\"",
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "same-origin",
-    "x-user-agent": "Arcane-Bot-5.0"
+  "accept": "application/json, text/plain, */*",
+  "accept-language": "en-GB,en-US;q=0.9,en;q=0.8,pt;q=0.7",
+  "authorization": ARCANE_API_KEY,
+  "if-none-match": "W/\"de3e-F4Q3Pl3thCt0unfPKV0M1Jnj69Y\"",
+  "priority": "u=1, i",
+  "sec-ch-ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
+  "sec-ch-ua-mobile": "?0",
+  "sec-ch-ua-platform": "\"Windows\"",
+  "sec-fetch-dest": "empty",
+  "sec-fetch-mode": "cors",
+  "sec-fetch-site": "same-origin",
+  "x-user-agent": "Arcane-Bot-5.0"
 };
 
 server.on('upgrade', (req, socket, head) => {
-    if (req.url === "/websocket/szaszabi-upload") {
-        wss.handleUpgrade(req, socket, head, (ws) => {
-            ws.path = "upload";
-            wss.emit("connection", ws, req);
-        });
-    } else if (req.url === "/websocket/second") {
-        wss.handleUpgrade(req, socket, head, (ws) => {
-            ws.path = "second";
-            wss.emit("connection", ws, req);
-        });
-    } else if (req.url === "/websocket/ipad-uptime") {
-        wss.handleUpgrade(req, socket, head, (ws) => {
-            ws.path = "ipad";
-            wss.emit("connection", ws, req);
-        });
-    } else {
-        socket.destroy();
-    }
+  if (req.url === "/websocket/szaszabi-upload") {
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      ws.path = "upload";
+      wss.emit("connection", ws, req);
+    });
+  } else if (req.url === "/websocket/second") {
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      ws.path = "second";
+      wss.emit("connection", ws, req);
+    });
+  } else if (req.url === "/websocket/ipad-uptime") {
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      ws.path = "ipad";
+      wss.emit("connection", ws, req);
+    });
+  } else {
+    socket.destroy();
+  }
 });
 
 wss.on("connection", (ws) => {
-    if (ws.path === "upload") {
-        console.log("New WebSocket connection established");
+  if (ws.path === "upload") {
+    console.log("New WebSocket connection established");
 
     ws.on("message", (message) => {
-        console.log("Received message:", message);
-        // Handle incoming messages if needed
+      console.log("Received message:", message);
+      // Handle incoming messages if needed
     });
 
     ws.on("close", () => {
-        console.log("WebSocket client disconnected");
+      console.log("WebSocket client disconnected");
     });
 
     ws.on("error", (error) => {
-        console.error("WebSocket error:", error);
+      console.error("WebSocket error:", error);
     });
 
     // Send the latest upload data to the client if available
     if (latestSzaSzabiUpload) {
-        ws.send(JSON.stringify(latestSzaSzabiUpload));
+      ws.send(JSON.stringify(latestSzaSzabiUpload));
     }
-    } else if (ws.path === "second") {
-        console.log("🔗 Render client connected");
+  } else if (ws.path === "second") {
+    console.log("🔗 Render client connected");
 
-  let lastSecond = null;
+    let lastSecond = null;
 
-  const interval = setInterval(() => {
-    const now = new Date();
-    const currentSecond = now.getUTCSeconds();
+    const interval = setInterval(() => {
+      const now = new Date();
+      const currentSecond = now.getUTCSeconds();
 
-    if (currentSecond !== lastSecond) {
-      lastSecond = currentSecond;
+      if (currentSecond !== lastSecond) {
+        lastSecond = currentSecond;
 
-      ws.send(JSON.stringify({
-        type: "renderTime",
-        utc: now.toISOString()
-      }));
-    }
-  }, 50); // check often, but only send once per new second
+        ws.send(JSON.stringify({
+          type: "renderTime",
+          utc: now.toISOString()
+        }));
+      }
+    }, 50); // check often, but only send once per new second
 
-  ws.on("close", () => {
-    clearInterval(interval);
-    console.log("❌ Render client disconnected");
-  });
-    } else if (ws.path === "ipad") {
-        const ip = req.socket.remoteAddress;
-  console.log(`Client connected from ${ip}`);
+    ws.on("close", () => {
+      clearInterval(interval);
+      console.log("❌ Render client disconnected");
+    });
+  } else if (ws.path === "ipad") {
+    const ip = req.socket.remoteAddress;
+    console.log(`Client connected from ${ip}`);
 
-  try {
-    const user = await bot.users.fetch(OWNER_ID);
-    user.send(`📶 WebSocket connection established from ${ip}`);
-  } catch (err) {
-    console.error('Failed to send DM:', err);
-  }
-
-  ws.on('close', async () => {
-    console.log(`Client disconnected from ${ip}`);
     try {
       const user = await bot.users.fetch(OWNER_ID);
-      user.send(`❌ WebSocket connection closed from ${ip}`);
+      user.send(`📶 WebSocket connection established from ${ip}`);
     } catch (err) {
       console.error('Failed to send DM:', err);
     }
-  });
-    }
+
+    ws.on('close', async () => {
+      console.log(`Client disconnected from ${ip}`);
+      try {
+        const user = await bot.users.fetch(OWNER_ID);
+        user.send(`❌ WebSocket connection closed from ${ip}`);
+      } catch (err) {
+        console.error('Failed to send DM:', err);
+      }
+    });
+  }
 });
 
 bot.login(BOT_TOKEN);
 
 function padZero(number) {
-    return String(number).padStart(2, '0');
+  return String(number).padStart(2, '0');
 }
 
 function numberWithCommas(x) {
@@ -132,90 +132,90 @@ function numberWithCommas(x) {
 }
 
 function getGoal(count2) {
-      var count = parseFloat(count2);
-      var t = parseFloat(count2);
-      if (count == null) return 0;
-      if (10 > t) return 10 - t;
-      var e = "" + t;
-      return Math.abs(
-        t -
-          (e.length > 6
-            ? 1e6 * (Math.floor(t / 1e6) + 1)
-            : (parseInt(e.charAt(0)) + 1) * Math.pow(10, e.length - 1))
-      );
-    }
+  var count = parseFloat(count2);
+  var t = parseFloat(count2);
+  if (count == null) return 0;
+  if (10 > t) return 10 - t;
+  var e = "" + t;
+  return Math.abs(
+    t -
+    (e.length > 6
+      ? 1e6 * (Math.floor(t / 1e6) + 1)
+      : (parseInt(e.charAt(0)) + 1) * Math.pow(10, e.length - 1))
+  );
+}
 
 function getGoalText(count2) {
-      var count = parseFloat(count2);
-      var t = parseFloat(count2);
-      if (count == null) return 0;
-      if (10 > t) return 10;
-      var e = "" + t;
-      return e.length > 6
-        ? 1e6 * (Math.floor(t / 1e6) + 1)
-        : (parseInt(e.charAt(0)) + 1) * Math.pow(10, e.length - 1);
-    }
+  var count = parseFloat(count2);
+  var t = parseFloat(count2);
+  if (count == null) return 0;
+  if (10 > t) return 10;
+  var e = "" + t;
+  return e.length > 6
+    ? 1e6 * (Math.floor(t / 1e6) + 1)
+    : (parseInt(e.charAt(0)) + 1) * Math.pow(10, e.length - 1);
+}
 
 function abbreviateNumber(num) {
-    if (num >= 1_000_000_000) {
-        return (num / 1_000_000_000).toFixed(2).replace(/\.?0+$/, '') + 'B';
-    } else if (num >= 1_000_000) {
-        return (num / 1_000_000).toFixed(2).replace(/\.?0+$/, '') + 'M';
-    } else if (num >= 1_000) {
-        return (num / 1_000).toFixed(2).replace(/\.?0+$/, '') + 'K';
-    } else {
-        return num.toString();
-    }
+  if (num >= 1_000_000_000) {
+    return (num / 1_000_000_000).toFixed(2).replace(/\.?0+$/, '') + 'B';
+  } else if (num >= 1_000_000) {
+    return (num / 1_000_000).toFixed(2).replace(/\.?0+$/, '') + 'M';
+  } else if (num >= 1_000) {
+    return (num / 1_000).toFixed(2).replace(/\.?0+$/, '') + 'K';
+  } else {
+    return num.toString();
+  }
 }
 
 async function getArcaneTop100Leaderboard(server, pageCount = 1, limit = 100) {
-    const base = `https://arcane.bot/api/guilds/${server}/levels/leaderboard`;
-    const requests = [];
+  const base = `https://arcane.bot/api/guilds/${server}/levels/leaderboard`;
+  const requests = [];
 
-    for (let i = 0; i < pageCount; i++) {
-        requests.push(fetch(`${base}?limit=${limit}&page=${i}`, { headers: HEADERS }));
+  for (let i = 0; i < pageCount; i++) {
+    requests.push(fetch(`${base}?limit=${limit}&page=${i}`, { headers: HEADERS }));
+  }
+
+  const responses = await Promise.all(requests);
+  const jsonData = await Promise.all(responses.map(res => res.json()));
+
+  const levels = [];
+  let xpOptions = null;
+
+  for (const data of jsonData) {
+    if (Array.isArray(data.levels)) {
+      levels.push(...data.levels);
     }
-
-    const responses = await Promise.all(requests);
-    const jsonData = await Promise.all(responses.map(res => res.json()));
-
-    const levels = [];
-    let xpOptions = null;
-
-    for (const data of jsonData) {
-        if (Array.isArray(data.levels)) {
-            levels.push(...data.levels);
-        }
-        if (!xpOptions && data.xp_options) {
-            xpOptions = data.xp_options;
-        }
+    if (!xpOptions && data.xp_options) {
+      xpOptions = data.xp_options;
     }
+  }
 
-    return {
-        levels,
-        xpOptions
-    };
+  return {
+    levels,
+    xpOptions
+  };
 }
 
 async function fetchLatestSzaSzabiUpload() {
-    try {
-        const response = await axios.get(
-            `https://www.googleapis.com/youtube/v3/search?key=${YOUTUBE_API_KEY}&channelId=UCx2ey9QUf1Ja4sV3EdavwSg&part=snippet&order=date&type=video&maxResults=1`
-        );
+  try {
+    const response = await axios.get(
+      `https://www.googleapis.com/youtube/v3/search?key=${YOUTUBE_API_KEY}&channelId=UCx2ey9QUf1Ja4sV3EdavwSg&part=snippet&order=date&type=video&maxResults=1`
+    );
 
-        if (response.data.items.length > 0) {
-            latestSzaSzabiUpload = response.data.items[0];
+    if (response.data.items.length > 0) {
+      latestSzaSzabiUpload = response.data.items[0];
 
-            // Broadcast update to all WebSocket clients
-            wsszu.clients.forEach((client) => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify(latestSzaSzabiUpload));
-                }
-            });
+      // Broadcast update to all WebSocket clients
+      wsszu.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(latestSzaSzabiUpload));
         }
-    } catch (error) {
-        console.error("Error fetching latest upload:", error.message);
+      });
     }
+  } catch (error) {
+    console.error("Error fetching latest upload:", error.message);
+  }
 }
 
 async function fetchyoutubechannel(channelId) {
@@ -640,7 +640,7 @@ app.get("/api/twitter/user/:id", async (req, res) => {
 app.get("/api/lurkr/levels/:id/:page", async (req, res) => {
   const { id, page } = req.params;
   const pageNumber = parseInt(page);
-  
+
   if (isNaN(pageNumber) || pageNumber < 1) {
     return res.status(400).json({ error: "Invalid page number" });
   }
@@ -704,20 +704,20 @@ app.get("/api/chat/youtube/channel/:channelId/studio", async (req, res) => {
 app.get("/api/chat/countdown/:offset", async (req, res) => {
   try {
     const currentDate = new Date();
-                    let offsetStr = req.params.offset; // Full timezone string like "UTC+05:30" or "UTC-03:00"
-                    let sign = offsetStr.charAt(3) === '-' ? -1 : 1; // Determine if it's positive or negative offset
-                    let offsetParts = offsetStr.slice(4).split(":"); // Get the hour and minute parts
-                    let offsetHours = parseInt(offsetParts[0]) || 0; // Default to 0 if not provided
-                    let offsetMinutes = parseInt(offsetParts[1]) || 0; // Default to 0 if not provided
-                    let totalOffsetMinutes = sign * (offsetHours * 60 + offsetMinutes); // Convert to total minutes
-                    let targetDate = new Date("2026-01-01T00:00:00Z"); // Set target date to Jan 1, 2026 in UTC
-                    targetDate.setMinutes(targetDate.getMinutes() - totalOffsetMinutes); // Adjust the target date by the offset in minutes
-                    let timeDiff = targetDate - currentDate;
-                    let daysUntil2025 = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-                    let hoursUntil2025 = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    let minutesUntil2025 = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-                    let secondsUntil2025 = Math.floor((timeDiff % (1000 * 60)) / 1000);
-                    res.send(`The time until 2026 for ${offsetStr} is ${padZero(daysUntil2025)}:${padZero(hoursUntil2025)}:${padZero(minutesUntil2025)}:${padZero(secondsUntil2025)}!`);
+    let offsetStr = req.params.offset; // Full timezone string like "UTC+05:30" or "UTC-03:00"
+    let sign = offsetStr.charAt(3) === '-' ? -1 : 1; // Determine if it's positive or negative offset
+    let offsetParts = offsetStr.slice(4).split(":"); // Get the hour and minute parts
+    let offsetHours = parseInt(offsetParts[0]) || 0; // Default to 0 if not provided
+    let offsetMinutes = parseInt(offsetParts[1]) || 0; // Default to 0 if not provided
+    let totalOffsetMinutes = sign * (offsetHours * 60 + offsetMinutes); // Convert to total minutes
+    let targetDate = new Date("2026-01-01T00:00:00Z"); // Set target date to Jan 1, 2026 in UTC
+    targetDate.setMinutes(targetDate.getMinutes() - totalOffsetMinutes); // Adjust the target date by the offset in minutes
+    let timeDiff = targetDate - currentDate;
+    let daysUntil2025 = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+    let hoursUntil2025 = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    let minutesUntil2025 = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+    let secondsUntil2025 = Math.floor((timeDiff % (1000 * 60)) / 1000);
+    res.send(`The time until 2026 for ${offsetStr} is ${padZero(daysUntil2025)}:${padZero(hoursUntil2025)}:${padZero(minutesUntil2025)}:${padZero(secondsUntil2025)}!`);
   } catch (error) {
     console.error(error);
     res.status(500).send("Failed to fetch counts");
@@ -727,7 +727,7 @@ app.get("/api/chat/countdown/:offset", async (req, res) => {
 // API route to get YouTube live subscriber count
 app.get("/api/chat/minecraft/xbox/:channelId/:username", async (req, res) => {
   try {
-     // Fetch from Mixerno API
+    // Fetch from Mixerno API
     const data = await fetchyoutubechannel(req.params.channelId);
     const user = await bot.users.fetch(OWNER_ID);
     user.send(`${data.user[0]}'s xbox username is ⬇️`);
@@ -840,34 +840,34 @@ app.get('/user2/latest', (req, res) => {
 });
 
 app.get("/api/trigger", async (req, res) => {
-        res.send("ohio");
+  res.send("ohio");
 });
 
 app.get('/api/discord/arcane/top100/:server', async (req, res) => {
-    const server = req.params.server;
-    res.json(await getArcaneTop100Leaderboard(server));
+  const server = req.params.server;
+  res.json(await getArcaneTop100Leaderboard(server));
 });
 
 app.get('/api/discord/arcane/:id/:server', async (req, res) => {
-    const id = req.params.id;
-    const combinedData = await getArcaneTop100Leaderboard(server);
-    const found = combinedData.find(entry => entry.id === id);
+  const id = req.params.id;
+  const combinedData = await getArcaneTop100Leaderboard(server);
+  const found = combinedData.find(entry => entry.id === id);
 
-    if (found) {
-        res.json(found);
-    } else {
-        res.status(404).json({ error: `User with ID ${id} not found in top 100.` });
-    }
+  if (found) {
+    res.json(found);
+  } else {
+    res.status(404).json({ error: `User with ID ${id} not found in top 100.` });
+  }
 });
 
 app.get('/api/database', async (req, res) => {
-    res.json(await saveData());
+  res.json(await saveData());
 });
 
 app.get('/api/database/add/:platform/:user', async (req, res) => {
-    const platform = req.params.platform;
-    const user = req.params.user;
-    res.json(await saveData(platform, user));
+  const platform = req.params.platform;
+  const user = req.params.user;
+  res.json(await saveData(platform, user));
 });
 
 // Fetch the latest upload every hour
@@ -900,6 +900,6 @@ module.exports = app;
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    fetchLatestSzaSzabiUpload(); // Fetch initial data on startup
+  console.log(`Server running on port ${PORT}`);
+  fetchLatestSzaSzabiUpload(); // Fetch initial data on startup
 });
