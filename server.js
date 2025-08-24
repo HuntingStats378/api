@@ -33,34 +33,12 @@ const HEADERS = {
   "x-user-agent": "Arcane-Bot-5.0"
 };
 
-server.on('upgrade', (req, socket, head) => {
-  if (req.url === "/websocket/szaszabi-upload") {
-    wss.handleUpgrade(req, socket, head, (ws) => {
-      ws.path = "upload";
-      wss.emit("connection", ws, req);
-    });
-  } else if (req.url === "/websocket/second") {
-    wss.handleUpgrade(req, socket, head, (ws) => {
-      ws.path = "second";
-      wss.emit("connection", ws, req);
-    });
-  } else if (req.url === "/websocket/ipad-uptime") {
-    wss.handleUpgrade(req, socket, head, (ws) => {
-      ws.path = "ipad";
-      wss.emit("connection", ws, req);
-    });
-  } else {
-    socket.destroy();
-  }
-});
-
-wss.on("connection", (ws) => {
+wss.on("connection", async (ws, req) => {
   if (ws.path === "upload") {
     console.log("New WebSocket connection established");
 
     ws.on("message", (message) => {
       console.log("Received message:", message);
-      // Handle incoming messages if needed
     });
 
     ws.on("close", () => {
@@ -71,51 +49,52 @@ wss.on("connection", (ws) => {
       console.error("WebSocket error:", error);
     });
 
-    // Send the latest upload data to the client if available
     if (latestSzaSzabiUpload) {
       ws.send(JSON.stringify(latestSzaSzabiUpload));
     }
+
   } else if (ws.path === "second") {
     console.log("🔗 Render client connected");
 
     let lastSecond = null;
-
     const interval = setInterval(() => {
       const now = new Date();
       const currentSecond = now.getUTCSeconds();
 
       if (currentSecond !== lastSecond) {
         lastSecond = currentSecond;
-
-        ws.send(JSON.stringify({
-          type: "renderTime",
-          utc: now.toISOString()
-        }));
+        if (ws.readyState === ws.OPEN) {
+          ws.send(JSON.stringify({
+            type: "renderTime",
+            utc: now.toISOString()
+          }));
+        }
       }
-    }, 50); // check often, but only send once per new second
+    }, 50);
 
     ws.on("close", () => {
       clearInterval(interval);
       console.log("❌ Render client disconnected");
     });
+
   } else if (ws.path === "ipad") {
     const ip = req.socket.remoteAddress;
     console.log(`Client connected from ${ip}`);
 
     try {
       const user = await bot.users.fetch(OWNER_ID);
-      user.send(`📶 WebSocket connection established from ${ip}`);
+      await user.send(`📶 WebSocket connection established from ${ip}`);
     } catch (err) {
-      console.error('Failed to send DM:', err);
+      console.error("Failed to send DM:", err);
     }
 
-    ws.on('close', async () => {
+    ws.on("close", async () => {
       console.log(`Client disconnected from ${ip}`);
       try {
         const user = await bot.users.fetch(OWNER_ID);
-        user.send(`❌ WebSocket connection closed from ${ip}`);
+        await user.send(`❌ WebSocket connection closed from ${ip}`);
       } catch (err) {
-        console.error('Failed to send DM:', err);
+        console.error("Failed to send DM:", err);
       }
     });
   }
