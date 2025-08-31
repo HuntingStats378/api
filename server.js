@@ -588,6 +588,51 @@ async function fetchlurkrlevels(serverId, page) {
   }
 }
 
+const GUILD_ID = "1150096734576451614";
+const API_BASE = `https://api.lurkr.gg/v2/levels/${GUILD_ID}`;
+
+app.get("/lurkr-combined", async (req, res) => {
+  try {
+    let page = 1;
+    let allLevels = [];
+    let guildData = null;
+
+    while (true) {
+      const response = await fetch(`${API_BASE}?page=${page}`);
+      if (!response.ok) throw new Error(`Failed to fetch page ${page}`);
+      const data = await response.json();
+
+      if (!guildData) {
+        // Keep guild and metadata from first page
+        guildData = {
+          guild: data.guild,
+          isManager: data.isManager,
+          multipliers: data.multipliers,
+          roleRewards: data.roleRewards,
+          vanity: data.vanity,
+          xpGainInterval: data.xpGainInterval,
+          xpPerMessageMax: data.xpPerMessageMax,
+          xpPerMessageMin: data.xpPerMessageMin
+        };
+      }
+
+      allLevels.push(...data.levels);
+
+      if (data.levels.length < 100) break;
+      page++;
+    }
+
+    // Return the combined object exactly in the Lurkr format
+    res.json({
+      ...guildData,
+      levels: allLevels
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/api/youtube/channel/:id", async (req, res) => {
   const { id } = req.params;
   res.json(await fetchyoutubechannel(id));
