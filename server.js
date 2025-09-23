@@ -9,6 +9,15 @@ const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, SlashCommandBuild
 const { google } = require("googleapis");
 const xml2js = require("xml2js");
 
+// Prevent crashes on unhandled errors
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
 // === Discord Bot Setup ===
 const bot = new Client({ intents: [GatewayIntentBits.DirectMessages, GatewayIntentBits.Guilds], partials: ['CHANNEL'] });
 const BOT_TOKEN = process.env.BOT_TOKEN;
