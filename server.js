@@ -1253,6 +1253,86 @@ CLIENT_2005_CLAIMER.login(DISCORD_TOKEN_2005_CLAIMER);
 
 // End of discord bots
 
+// Create a WebSocket server for client tracking
+const clientCounters = new WebSocketServer({ server, path: '/clients' });
+
+// Map to track clients by page URL
+let clientsByUrl = new Map(); // Map<url, Set<WebSocket>>
+
+clientCounters.on('connection', (ws, req) => {
+  // Get the ?url=... query parameter from the connection
+  const params = new URLSearchParams(req.url.split('?')[1]);
+  const pageUrl = params.get('url') || 'unknown';
+
+  console.log(`Client connected from: ${pageUrl}`);
+
+  // Add client to its group
+  if (!clientsByUrl.has(pageUrl)) {
+    clientsByUrl.set(pageUrl, new Set());
+  }
+  clientsByUrl.get(pageUrl).add(ws);
+
+  // Log and broadcast
+  console.log(`Client connected. Total clients: ${getTotalClientCount()}`);
+  broadcastClientCounts();
+
+  ws.on('close', () => {
+    // Remove client
+    const set = clientsByUrl.get(pageUrl);
+    if (set) {
+      set.delete(ws);
+      if (set.size === 0) {
+        clientsByUrl.delete(pageUrl);
+      }
+    }
+
+    console.log(`Client disconnected. Total clients: ${getTotalClientCount()}`);
+    broadcastClientCounts();
+  });
+});
+
+// Helper: total count
+function getTotalClientCount() {
+  let total = 0;
+  for (const set of clientsByUrl.values()) {
+    total += set.size;
+  }
+  return total;
+}
+
+// Helper: per-URL breakdown
+function getClientCountsByUrl() {
+  const counts = {};
+  for (const [url, set] of clientsByUrl.entries()) {
+    counts[url] = set.size;
+  }
+  return counts;
+}
+
+// Send count updates to all clients
+
+function broadcastClientCounts() {
+  const data = {
+    clientCount: getTotalClientCount(),
+    clientsByUrl: getClientCountsByUrl(),
+  };
+
+  const message = JSON.stringify(data);
+  clientCounters.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
+}
+
+// REST API endpoint to fetch counts
+app.get('/api/client-count', (req, res) => {
+  res.json({
+    clientCount: getTotalClientCount(),
+    clientsByUrl: getClientCountsByUrl(),
+  });
+});
+
 module.exports = app;
 
 const PORT = process.env.PORT || 3000;
