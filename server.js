@@ -2,7 +2,7 @@ const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
 const http = require('http');
-const WebSocket = require('ws');
+const { WebSocketServer, WebSocket } = require('ws');
 const app = express();
 app.use(cors());
 const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, SlashCommandBuilder } = require("discord.js");
