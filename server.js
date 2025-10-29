@@ -1333,6 +1333,76 @@ app.get('/api/client-count', (req, res) => {
   });
 });
 
+// --- WebSocket setup (/shxp?server=ID) ---
+const shxpSocket = new WebSocketServer({ server, path: "/shxp" });
+const serverDataCache = new Map(); // per-server: { latestData, clients, interval }
+
+// Fetch + broadcast wrapper
+async function updateAndBroadcast(serverId) {
+  const state = serverDataCache.get(serverId);
+  if (!state) return;
+
+  try {
+    const result = await getArcaneTop100Leaderboard(serverId);
+    state.latestData = result;
+
+    for (const client of state.clients) {
+      if (client.readyState === 1) {
+        client.send(JSON.stringify(result));
+      }
+    }
+
+    console.log(`[shxp:${serverId}] Broadcasted to ${state.clients.size} clients`);
+  } catch (err) {
+    console.error(`[shxp:${serverId}] Error fetching leaderboard:`, err);
+  }
+}
+
+// Handle WebSocket connections
+shxpSocket.on("connection", (ws, req) => {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const serverId = url.searchParams.get("server");
+
+  if (!serverId) {
+    ws.send(JSON.stringify({ error: "Missing ?server parameter" }));
+    ws.close();
+    return;
+  }
+
+  // Ensure server state exists
+  if (!serverDataCache.has(serverId)) {
+    serverDataCache.set(serverId, {
+      latestData: null,
+      clients: new Set(),
+      interval: null,
+    });
+  }
+
+  const state = serverDataCache.get(serverId);
+  state.clients.add(ws);
+
+  // Send cached data immediately if available
+  if (state.latestData !== null) {
+    ws.send(JSON.stringify(state.latestData));
+  }
+
+  // Start the loop if not running
+  if (!state.interval) {
+    console.log(`[shxp:${serverId}] Starting 1-min loop`);
+    updateAndBroadcast(serverId);
+    state.interval = setInterval(() => updateAndBroadcast(serverId), 60 * 1000);
+  }
+
+  ws.on("close", () => {
+    state.clients.delete(ws);
+    if (state.clients.size === 0) {
+      console.log(`[shxp:${serverId}] No clients left, stopping loop`);
+      clearInterval(state.interval);
+      serverDataCache.delete(serverId);
+    }
+  });
+});
+
 module.exports = app;
 
 const port = process.env.PORT || 10000;
