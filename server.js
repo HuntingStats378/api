@@ -1403,6 +1403,44 @@ shxpSocket.on("connection", (ws, req) => {
   });
 });
 
+const wssstores = new WebSocketServer({ port: 8080 });
+
+// key -> lastValue
+const wsstores = {};
+
+wssstores.on('connection', (ws, req) => {
+    // Parse query params to get the store key (e.g., ?counter=num4)
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const store = url.searchParams.get('counter');
+    ws.on('message', (msg) => {
+        try {
+            const { store, value } = JSON.parse(msg);
+            if (!store) return;
+
+            wsstores[store] = value;
+
+            // broadcast to all clients
+            wssstores.clients.forEach(client => {
+                if (client.readyState === client.OPEN) {
+                    client.send(JSON.stringify({ store, value }));
+                }
+            });
+        } catch (e) {
+            console.error('Invalid message:', msg);
+        }
+    });
+
+    // On connection, send only the selected store's current value
+    if (store && wsstores[store] !== undefined) {
+        ws.send(JSON.stringify({ store, value: wsstores[store] }));
+    }
+
+    // Broadcast handling remains the same
+    Object.entries(wsstores).forEach(([store, value]) => {
+        ws.send(JSON.stringify({ store, value }));
+    });
+});
+
 module.exports = app;
 
 const port = process.env.PORT || 10000;
