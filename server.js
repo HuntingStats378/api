@@ -944,7 +944,8 @@ const YOUTUBE_API_KEY_2005_CLAIMER = process.env.YOUTUBE_API_KEY_2005_CLAIMER;
 const HARDCUTOFF = new Date("2011-09-30T23:59:59Z"); // uploads
 const SOFTCUTOFF = new Date("2009-05-31T23:59:59Z"); // soft cutoff
 
-// ================== CLIENT ==================
+// ==================
+
 const CLIENT_2005_CLAIMER = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -953,14 +954,14 @@ const CLIENT_2005_CLAIMER = new Client({
   ],
 });
 
-// ================== YOUTUBE API ==================
 const youtube = google.youtube({
   version: "v3",
   auth: YOUTUBE_API_KEY_2005_CLAIMER,
 });
 
-// ================== EMBED BUILDER ==================
+// Helper: build embed
 function buildResultEmbed(title, url, reasons) {
+  // Split reasons
   const notClaimable = reasons.filter(r => !r.includes("still might be claimable"));
   const possiblyNotClaimable = reasons.filter(r => r.includes("still might be claimable"));
 
@@ -977,13 +978,14 @@ function buildResultEmbed(title, url, reasons) {
     .setTitle(notClaimable.length ? "Not claimable" : "Claimable")
     .setURL(url)
     .setDescription(description)
-    .setColor(notClaimable.length ? 0xff0000 : 0x00ff00);
+    .setColor(notClaimable.length ? 0xff0000 : 0x00ff00)
 }
 
-// ================== ANALYZER ==================
+// Unified analyzer with deduplication
 async function analyzeChannel(channel, username = null) {
   const reasons = new Set();
 
+  // ---- Check channel creation date ----
   if (channel.snippet?.publishedAt) {
     const created = new Date(channel.snippet.publishedAt);
     if (created > new Date("2009-05-01")) {
@@ -991,6 +993,7 @@ async function analyzeChannel(channel, username = null) {
     }
   }
 
+  // ---- Check uploads ----
   try {
     const uploadsPlaylist = channel.contentDetails?.relatedPlaylists?.uploads;
     if (uploadsPlaylist) {
@@ -999,6 +1002,7 @@ async function analyzeChannel(channel, username = null) {
         playlistId: uploadsPlaylist,
         maxResults: 5,
       });
+
       if (uploads.data.items?.length) {
         const latest = uploads.data.items[0].snippet.publishedAt;
         if (new Date(latest) > new Date("2011-09-01")) {
@@ -1008,19 +1012,33 @@ async function analyzeChannel(channel, username = null) {
     } else {
       reasons.add("Uploads playlist not found (legacy or hidden) (still might be claimable)");
     }
-  } catch {
-    reasons.add("Error checking uploads playlist (still might be claimable)");
+  } catch (err) {
+    if (err.code === 404) {
+      reasons.add("Uploads playlist not found (legacy or hidden) (still might be claimable)");
+    } else {
+      console.error("Error fetching uploads:", err);
+      reasons.add("Error checking uploads playlist (still might be claimable)");
+    }
   }
 
-  if (channel.brandingSettings?.image?.bannerExternalUrl) reasons.add("Has a banner");
-  if (channel.brandingSettings?.channel?.country) reasons.add("Has a country set");
+  // ---- Check banner ----
+  if (channel.brandingSettings?.image?.bannerExternalUrl) {
+    reasons.add("Has a banner");
+  }
 
+  // ---- Check country ----
+  if (channel.brandingSettings?.channel?.country) {
+    reasons.add("Has a country set");
+  }
+
+  // ---- Check username vs channel name ----
   if (username && channel.snippet?.title) {
     if (channel.snippet.title.toLowerCase() !== username.toLowerCase()) {
       reasons.add("Channel name isn't the same as username");
     }
   }
 
+  // ---- Check playlists ----
   try {
     const playlists = await youtube.playlists.list({
       part: "id",
@@ -1028,60 +1046,118 @@ async function analyzeChannel(channel, username = null) {
       maxResults: 5,
     });
     for (const pl of playlists.data.items || []) {
-      if (pl.id.length > 18) reasons.add("Has a playlist with its ID longer than 18 characters");
+      if (pl.id.length > 18) {
+        reasons.add("Has a playlist with its ID longer than 18 characters");
+      }
     }
-  } catch {
+  } catch (err) {
+    console.error("Error fetching playlists:", err);
     reasons.add("Error checking playlists (still might be claimable)");
   }
 
-  return Array.from(reasons);
+  // ---- Check Shorts tab ----
+  try {
+    const tabs = channel.topicDetails?.topicCategories || [];
+    if (tabs.some(t => t.toLowerCase().includes("shorts"))) {
+      reasons.add("Has the 'Shorts' tab");
+    }
+  } catch {
+    // ignore silently
+  }
+
+  return Array.from(reasons); // always return array
 }
 
-// ================== LEGACY USERNAME FEED ==================
-async function getInfoByUsernameFeed(username) {
+// --- Get channel via legacy username feed ---
+async function getByUsernameFeed(username) {
   try {
-    const url = `https://www.youtube.com/feeds/videos.xml?user=${encodeURIComponent(username)}`;
-    const res = await fetch(url);
+    const urlFeed = `https://www.youtube.com/feeds/videos.xml?user=${encodeURIComponent(username)}`;
+    const res = await fetch(urlFeed);
     if (!res.ok) return null;
+    const text = await res.text();
+    const parsed = await xml2js.parseStringPromise(text);
 
-    const xml = await res.text();
-    const parsed = await xml2js.parseStringPromise(xml, { explicitArray: false });
-    const feed = parsed.feed;
+    // ✅ Get proper channelId from <link rel="alternate">
+    const links = parsed.feed?.link || [];
+    const altLink = links.find(l => l.$.rel === "alternate");
+    if (!altLink) return null;
 
-    const rawId = feed["yt:channelId"];
-    const channelId = rawId.startsWith("UC") ? rawId : `UC${rawId}`;
+    const channelUrl = altLink.$.href; // e.g. https://www.youtube.com/channel/UCVC_LshjFEotcngMGgEslyA
+    const channelId = channelUrl.split("/").pop();
+    if (!channelId) return null;
 
-    const published = new Date(feed.published);
-    const timestamp = published.toISOString().replace("T", " ").split(".")[0];
+    const channelRes = await youtube.channels.list({
+      part: "snippet,brandingSettings,contentDetails",
+      id: channelId,
+    });
+    if (!channelRes.data.items?.length) return null;
 
-    return {
-      name: feed.title,
-      channelId,
-      timestamp,
-      url: `https://www.youtube.com/channel/${channelId}`,
-    };
-  } catch {
+    return { channel: channelRes.data.items[0], username };
+  } catch (err) {
+    console.error(err);
     return null;
   }
 }
 
-// ================== EXECUTOR ==================
+// --- Get channel via handle ---
+async function getByHandleAPI(handle) {
+  try {
+    const handleName = handle.startsWith("@") ? handle : `@${handle}`;
+    const res = await youtube.channels.list({
+      part: "snippet,brandingSettings,contentDetails",
+      forHandle: handleName,
+    });
+    if (!res.data.items?.length) return null;
+    return { channel: res.data.items[0], username: null };
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
+
+// --- Get channel via ID ---
+async function getByChannelId(channelId) {
+  const res = await youtube.channels.list({
+    part: "snippet,brandingSettings,contentDetails",
+    id: channelId,
+  });
+  if (!res.data.items?.length) return null;
+  return { channel: res.data.items[0], username: null };
+}
+
+// --- Name search ---
+async function getByQuery(query) {
+  const res = await youtube.search.list({
+    part: "snippet",
+    type: "channel",
+    q: query,
+    maxResults: 1,
+  });
+  if (!res.data.items?.length) return null;
+  return getByChannelId(res.data.items[0].snippet.channelId);
+}
+
+// --- Shared executor ---
 async function executeCheck(type, value, target) {
   let channelData = null;
   let url = "";
 
   if (type === "cu") {
-    const info = await getInfoByUsernameFeed(value);
-    if (!info) return reply(target, "❌ No channel found via feed");
-
-    const res = await youtube.channels.list({
-      part: "snippet,brandingSettings,contentDetails",
-      id: info.channelId,
-    });
-    if (!res.data.items?.length) return reply(target, "❌ Channel not found via API");
-
-    channelData = { channel: res.data.items[0], username: value };
+    channelData = await getByUsernameFeed(value);
+    if (!channelData) return reply(target, "❌ No channel found via feed");
     url = `https://youtube.com/user/${value}`;
+  } else if (type === "ch") {
+    channelData = await getByHandleAPI(value);
+    if (!channelData) return reply(target, "❌ No channel found via handle");
+    url = `https://youtube.com/${value}`;
+  } else if (type === "ci") {
+    channelData = await getByChannelId(value);
+    if (!channelData) return reply(target, "❌ No channel found via ID");
+    url = `https://youtube.com/channel/${value}`;
+  } else if (type === "cc") {
+    channelData = await getByQuery(value);
+    if (!channelData) return reply(target, "❌ No channel found via search");
+    url = `https://youtube.com/channel/${channelData.channel.id}`;
   }
 
   if (channelData) {
@@ -1092,48 +1168,88 @@ async function executeCheck(type, value, target) {
   }
 }
 
+// Helper to reply to message or interaction
 function reply(target, content) {
   if (target.reply) return target.reply(content);
   if (target.isRepliable()) return target.reply(content);
 }
 
-// ================== TEXT COMMAND ==================
-CLIENT_2005_CLAIMER.on("messageCreate", async message => {
+// ===== TEXT COMMANDS =====
+CLIENT_2005_CLAIMER.on("messageCreate", async (message) => {
   if (message.author.bot) return;
   const [cmd, arg] = message.content.split(" ");
-  if (cmd === ".iu" && arg) {
-    const info = await getInfoByUsernameFeed(arg);
-    if (!info) return message.reply("❌ Could not retrieve channel info.");
-    return message.reply(`**Channel Name:** ${info.name}\n**Channel ID:** ${info.channelId}\n**Timestamp:** [${info.timestamp}]`);
+  if (!cmd) return;
+
+  if (cmd === ".check") {
+    const embed = new EmbedBuilder()
+      .setTitle("YouTube Claimability Bot Commands")
+      .setDescription(
+        "`.cu <username>` → legacy username\n" +
+        "`.ci <channelId>` → channel ID\n" +
+        "`.ch <@handle>` → YouTube handle\n" +
+        "`.cc <name>` → search by channel name\n" +
+        "Each returns claimability info with embeds"
+      )
+      .setColor(0x3498db);
+    return message.reply({ embeds: [embed] });
+  }
+
+  if ([".cu", ".ci", ".ch", ".cc"].includes(cmd) && arg) {
+    await executeCheck(cmd.slice(1), arg, message);
   }
 });
 
-// ================== SLASH COMMANDS ==================
+// ===== SLASH COMMANDS =====
 const commands = [
-  new SlashCommandBuilder()
-    .setName("iu")
-    .setDescription("Get legacy YouTube channel info via username")
-    .addStringOption(opt => opt.setName("username").setDescription("Legacy username").setRequired(true)),
+  new SlashCommandBuilder().setName("cu").setDescription("Check via legacy username")
+    .addStringOption(opt => opt.setName("username").setDescription("Legacy YouTube username").setRequired(true)),
+  new SlashCommandBuilder().setName("ci").setDescription("Check via channel ID")
+    .addStringOption(opt => opt.setName("id").setDescription("Channel ID").setRequired(true)),
+  new SlashCommandBuilder().setName("ch").setDescription("Check via @handle")
+    .addStringOption(opt => opt.setName("handle").setDescription("YouTube handle").setRequired(true)),
+  new SlashCommandBuilder().setName("cc").setDescription("Check via channel name")
+    .addStringOption(opt => opt.setName("name").setDescription("Channel name").setRequired(true)),
+  new SlashCommandBuilder().setName("check").setDescription("List all available commands"),
 ].map(c => c.toJSON());
 
 CLIENT_2005_CLAIMER.once("ready", async () => {
   console.log(`✅ Logged in as ${CLIENT_2005_CLAIMER.user.tag}`);
   const rest = new REST({ version: "10" }).setToken(DISCORD_TOKEN_2005_CLAIMER);
-  await rest.put(Routes.applicationCommands(CLIENT_ID_2005_CLAIMER), { body: commands });
-  console.log("✅ Slash commands registered.");
+  try {
+    console.log("🌍 Registering global slash commands...");
+    await rest.put(Routes.applicationCommands(CLIENT_ID_2005_CLAIMER), { body: commands });
+    console.log("✅ Slash commands registered globally.");
+  } catch (err) {
+    console.error("Failed to register slash commands:", err);
+  }
 });
 
-CLIENT_2005_CLAIMER.on("interactionCreate", async interaction => {
+CLIENT_2005_CLAIMER.on("interactionCreate", async (interaction) => {
   if (!interaction.isCommand()) return;
-  if (interaction.commandName === "iu") {
-    const username = interaction.options.getString("username");
-    const info = await getInfoByUsernameFeed(username);
-    if (!info) return interaction.reply({ content: "❌ Could not retrieve channel info.", ephemeral: true });
-    return interaction.reply(`**Channel Name:** ${info.name}\n**Channel ID:** ${info.channelId}\n**Timestamp:** [${info.timestamp}]`);
+
+  const { commandName, options } = interaction;
+  if (commandName === "check") {
+    const embed = new EmbedBuilder()
+      .setTitle("YouTube Claimability Bot Commands")
+      .setDescription(
+        "/cu <username> → legacy username\n" +
+        "/ci <channelId> → channel ID\n" +
+        "/ch <@handle> → YouTube handle\n" +
+        "/cc <name> → search by channel name\n" +
+        "Each returns claimability info with embeds"
+      )
+      .setColor(0x3498db);
+    return interaction.reply({ embeds: [embed] });
+  }
+
+  if (["cu", "ci", "ch", "cc"].includes(commandName)) {
+    const value = options.getString("username") || options.getString("id") || options.getString("handle") || options.getString("name");
+    await executeCheck(commandName, value, interaction);
   }
 });
 
 CLIENT_2005_CLAIMER.login(DISCORD_TOKEN_2005_CLAIMER);
+
 
 // End of discord bots
 
