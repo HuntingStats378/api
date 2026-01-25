@@ -1099,6 +1099,26 @@ async function getByUsernameFeed(username) {
   }
 }
 
+// ================== EID / IED ==================
+
+async function getEidRowByUsername(username) {
+  const data = await getByUsernameFeed(username);
+  if (!data) return null;
+
+  const { channel } = data;
+  const d = new Date(channel.snippet.publishedAt);
+
+  const formatted =
+    d.getUTCFullYear() + "-" +
+    String(d.getUTCMonth() + 1).padStart(2, "0") + "-" +
+    String(d.getUTCDate()).padStart(2, "0") + " " +
+    String(d.getUTCHours()).padStart(2, "0") + ":" +
+    String(d.getUTCMinutes()).padStart(2, "0") + ":" +
+    String(d.getUTCSeconds()).padStart(2, "0");
+
+  return `${channel.id}\t${formatted}`;
+}
+
 // --- Get channel via handle ---
 async function getByHandleAPI(handle) {
   try {
@@ -1194,6 +1214,12 @@ CLIENT_2005_CLAIMER.on("messageCreate", async (message) => {
     return message.reply({ embeds: [embed] });
   }
 
+  if (cmd === "!eid" && arg) {
+  const row = await getEidRowByUsername(arg);
+  if (!row) return message.reply("❌ Channel not found");
+  return message.reply(row);
+}
+
   if ([".cu", ".ci", ".ch", ".cc"].includes(cmd) && arg) {
     await executeCheck(cmd.slice(1), arg, message);
   }
@@ -1209,8 +1235,20 @@ const commands = [
     .addStringOption(opt => opt.setName("handle").setDescription("YouTube handle").setRequired(true)),
   new SlashCommandBuilder().setName("cc").setDescription("Check via channel name")
     .addStringOption(opt => opt.setName("name").setDescription("Channel name").setRequired(true)),
+  
   new SlashCommandBuilder().setName("check").setDescription("List all available commands"),
 ].map(c => c.toJSON());
+
+new SlashCommandBuilder()
+  .setName("ied")
+  .setDescription("Get channel ID + creation date (Sheets-ready)")
+  .addStringOption(opt =>
+    opt
+      .setName("username")
+      .setDescription("Legacy YouTube username")
+      .setRequired(true)
+  ),
+
 
 CLIENT_2005_CLAIMER.once("ready", async () => {
   console.log(`✅ Logged in as ${CLIENT_2005_CLAIMER.user.tag}`);
@@ -1241,6 +1279,13 @@ CLIENT_2005_CLAIMER.on("interactionCreate", async (interaction) => {
       .setColor(0x3498db);
     return interaction.reply({ embeds: [embed] });
   }
+
+  if (commandName === "ied") {
+  const username = options.getString("username");
+  const row = await getEidRowByUsername(username);
+  if (!row) return interaction.reply("❌ Channel not found");
+  return interaction.reply(row);
+}
 
   if (["cu", "ci", "ch", "cc"].includes(commandName)) {
     const value = options.getString("username") || options.getString("id") || options.getString("handle") || options.getString("name");
