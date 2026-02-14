@@ -1068,6 +1068,41 @@ async function analyzeChannel(channel, username = null) {
   return Array.from(reasons); // always return array
 }
 
+// Helper: get channel by username using API URL
+async function getByUsernameAPI(username) {
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=&forUsername=${encodeURIComponent(username)}&key=${YOUTUBE_API_KEY_2005_CLAIMER}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (!data.items || !data.items.length) return null;
+
+    return data.items[0]; // returns channel object
+  } catch (err) {
+    console.error("Error fetching channel via API URL:", err);
+    return null;
+  }
+}
+
+// Helper: format timestamp in UTC YYYY-MM-DD HH:MM:SS
+function formatUTC(dateStr) {
+  const d = new Date(dateStr);
+  return (
+    d.getUTCFullYear() +
+    "-" +
+    String(d.getUTCMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(d.getUTCDate()).padStart(2, "0") +
+    " " +
+    String(d.getUTCHours()).padStart(2, "0") +
+    ":" +
+    String(d.getUTCMinutes()).padStart(2, "0") +
+    ":" +
+    String(d.getUTCSeconds()).padStart(2, "0")
+  );
+}
+
 // --- Get channel via legacy username feed ---
 async function getByUsernameFeed(username) {
   try {
