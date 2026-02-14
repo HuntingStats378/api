@@ -1197,9 +1197,11 @@ function reply(target, content) {
 // ===== TEXT COMMANDS =====
 CLIENT_2005_CLAIMER.on("messageCreate", async (message) => {
   if (message.author.bot) return;
+
   const [cmd, arg] = message.content.split(" ");
   if (!cmd) return;
 
+  // === .check command ===
   if (cmd === ".check") {
     const embed = new EmbedBuilder()
       .setTitle("YouTube Claimability Bot Commands")
@@ -1208,88 +1210,99 @@ CLIENT_2005_CLAIMER.on("messageCreate", async (message) => {
         "`.ci <channelId>` → channel ID\n" +
         "`.ch <@handle>` → YouTube handle\n" +
         "`.cc <name>` → search by channel name\n" +
-        "Each returns claimability info with embeds"
+        "`.eid <username>` → channel ID + creation date\n" +
+        "`!inc <username>` → single CSV ID+timestamp\n" +
+        "`!inc <range>` + multi usernames → CSV multi output"
       )
       .setColor(0x3498db);
     return message.reply({ embeds: [embed] });
   }
 
+  // === !eid command ===
   if (cmd === "!eid" && arg) {
-  const row = await getEidRowByUsername(arg);
-  if (!row) return message.reply("❌ Channel not found");
-  return message.reply(row);
-}
+    const row = await getEidRowByUsername(arg);
+    if (!row) return message.reply("❌ Channel not found");
+    return message.reply(row);
+  }
 
+  // === NEW !inc command ===
+  if (message.content.startsWith("!inc")) {
+    const lines = message.content
+      .split("\n")
+      .map(l => l.trim())
+      .filter(Boolean);
+
+    // --- SINGLE username ---
+    if (lines.length === 1) {
+      const parts = lines[0].split(" ");
+      if (parts.length < 2) return message.reply("❌ Provide a username");
+
+      const username = parts[1].replace(/[<>]/g, "");
+      const channel = await getByUsernameAPI(username);
+      if (!channel) return message.reply("❌ Channel not found");
+
+      const timestamp = formatUTC(channel.snippet.publishedAt);
+
+      return message.reply(`\`${channel.id},${timestamp}\``);
+    }
+
+    // --- MULTI usernames ---
+    const headerMatch = lines[0].match(/<([\d,]+-[\d,]+)>/);
+    if (!headerMatch) return message.reply("❌ Invalid range header");
+
+    const rankRange = headerMatch[1];
+    const usernames = lines.slice(1).map(u => u.replace(/[<>]/g, ""));
+    if (!usernames.length) return message.reply("❌ No usernames provided");
+
+    const results = [];
+
+    for (const username of usernames) {
+      const channel = await getByUsernameAPI(username);
+      if (!channel) continue;
+
+      const timestamp = formatUTC(channel.snippet.publishedAt);
+
+      results.push({
+        username,
+        id: channel.id,
+        timestamp,
+      });
+    }
+
+    if (!results.length) return message.reply("❌ No valid channels found");
+
+    // Build confirmation sentence
+    const confirmationNames = results.map(r =>
+      `${r.username} (${r.timestamp})`
+    );
+
+    let joinedNames = "";
+    if (confirmationNames.length === 1) {
+      joinedNames = confirmationNames[0];
+    } else if (confirmationNames.length === 2) {
+      joinedNames = confirmationNames.join(" and ");
+    } else {
+      joinedNames =
+        confirmationNames.slice(0, -1).join(" and ") +
+        " and " +
+        confirmationNames.slice(-1);
+    }
+
+    const confirmation =
+      `confirmed because no other channels were created between ${rankRange} ` +
+      `therefore ${joinedNames} are between with join dates available`;
+
+    // Build final CSV-friendly output with two spaces before confirmation
+    const output = results
+      .map(r => `${r.id},${r.timestamp},  "${confirmation}"`)
+      .join("\n");
+
+    return message.reply("```\n" + output + "\n```");
+  }
+
+  // === Other legacy check commands (.cu, .ci, .ch, .cc) ===
   if ([".cu", ".ci", ".ch", ".cc"].includes(cmd) && arg) {
     await executeCheck(cmd.slice(1), arg, message);
-  }
-});
-
-// ===== SLASH COMMANDS =====
-const commands = [
-  new SlashCommandBuilder().setName("cu").setDescription("Check via legacy username")
-    .addStringOption(opt => opt.setName("username").setDescription("Legacy YouTube username").setRequired(true)),
-  new SlashCommandBuilder().setName("ci").setDescription("Check via channel ID")
-    .addStringOption(opt => opt.setName("id").setDescription("Channel ID").setRequired(true)),
-  new SlashCommandBuilder().setName("ch").setDescription("Check via @handle")
-    .addStringOption(opt => opt.setName("handle").setDescription("YouTube handle").setRequired(true)),
-  new SlashCommandBuilder().setName("cc").setDescription("Check via channel name")
-    .addStringOption(opt => opt.setName("name").setDescription("Channel name").setRequired(true)),
-  
-  new SlashCommandBuilder().setName("check").setDescription("List all available commands"),
-].map(c => c.toJSON());
-
-new SlashCommandBuilder()
-  .setName("ied")
-  .setDescription("Get channel ID + creation date (Sheets-ready)")
-  .addStringOption(opt =>
-    opt
-      .setName("username")
-      .setDescription("Legacy YouTube username")
-      .setRequired(true)
-  ),
-
-
-CLIENT_2005_CLAIMER.once("ready", async () => {
-  console.log(`✅ Logged in as ${CLIENT_2005_CLAIMER.user.tag}`);
-  const rest = new REST({ version: "10" }).setToken(DISCORD_TOKEN_2005_CLAIMER);
-  try {
-    console.log("🌍 Registering global slash commands...");
-    await rest.put(Routes.applicationCommands(CLIENT_ID_2005_CLAIMER), { body: commands });
-    console.log("✅ Slash commands registered globally.");
-  } catch (err) {
-    console.error("Failed to register slash commands:", err);
-  }
-});
-
-CLIENT_2005_CLAIMER.on("interactionCreate", async (interaction) => {
-  if (!interaction.isCommand()) return;
-
-  const { commandName, options } = interaction;
-  if (commandName === "check") {
-    const embed = new EmbedBuilder()
-      .setTitle("YouTube Claimability Bot Commands")
-      .setDescription(
-        "/cu <username> → legacy username\n" +
-        "/ci <channelId> → channel ID\n" +
-        "/ch <@handle> → YouTube handle\n" +
-        "/cc <name> → search by channel name\n" +
-        "Each returns claimability info with embeds"
-      )
-      .setColor(0x3498db);
-    return interaction.reply({ embeds: [embed] });
-  }
-
-  if (commandName === "ied") {
-  const username = options.getString("username");
-  const row = await getEidRowByUsername(username);
-  if (!row) return interaction.reply("❌ Channel not found");
-  return interaction.reply(row);
-}
-
-  if (["cu", "ci", "ch", "cc"].includes(commandName)) {
-    const value = options.getString("username") || options.getString("id") || options.getString("handle") || options.getString("name");
-    await executeCheck(commandName, value, interaction);
   }
 });
 
