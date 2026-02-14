@@ -1274,6 +1274,8 @@ CLIENT_2005_CLAIMER.on("messageCreate", async (message) => {
 
       const username = parts[1].replace(/[<>]/g, "");
       const channel = await getByUsernameAPI(username);
+      console.log(channel);
+      console.log(await getByUsernameAPI(username))
       if (!channel) return message.reply("❌ Channel not found");
 
       const timestamp = formatUTC(channel.snippet.publishedAt);
