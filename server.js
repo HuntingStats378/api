@@ -1071,7 +1071,7 @@ async function analyzeChannel(channel, username = null) {
 // Helper: get channel by username using API URL
 async function getByUsernameAPI(username) {
   try {
-    const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=&forUsername=${encodeURIComponent(username)}&key=${YOUTUBE_API_KEY_2005_CLAIMER}`;
+    const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=&forUsername=${encodeURIComponent(username)}&key=${YOUTUBE_API_KEY}`;
     const res = await fetch(url);
     if (!res.ok) return null;
 
