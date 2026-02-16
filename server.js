@@ -1302,6 +1302,68 @@ if (cmd === "!cdu" && arg) {
       message.reply("❌ Failed to fetch archive data");
     }
   }
+
+if (cmd === "!ccu" && arg) {
+    try {
+      const username = arg.replace(/[<>]/g, "");
+
+      const countries = [
+        "ca","mx","br","en","uk","ie","es","fr","nl","de",
+        "cz","it","pl","se","ru","il","in","kr","jp","hk",
+        "tw","au","nz"
+      ];
+
+      const found = [];
+
+      for (const cc of countries) {
+
+        // Format 1: xx.youtube.com
+        const subdomainUrl = `https://${cc}.youtube.com/user/${username}`;
+        const api1 = `https://archive.org/wayback/available?url=${encodeURIComponent(subdomainUrl)}`;
+
+        const r1 = await fetch(api1);
+        const j1 = await r1.json();
+
+        if (j1?.archived_snapshots?.closest?.available) {
+          found.push(`[${cc}.youtube.com](${j1.archived_snapshots.closest.url})`);
+        }
+
+        // Format 2: youtube.xx
+        const tldUrl = `https://www.youtube.${cc}/user/${username}`;
+        const api2 = `https://archive.org/wayback/available?url=${encodeURIComponent(tldUrl)}`;
+
+        const r2 = await fetch(api2);
+        const j2 = await r2.json();
+
+        if (j2?.archived_snapshots?.closest?.available) {
+          found.push(`[youtube.${cc}](${j2.archived_snapshots.closest.url})`);
+        }
+      }
+
+      // FTP (subdomain only)
+      const ftpUrl = `http://ftp.youtube.com/user/${username}`;
+      const ftpApi = `https://archive.org/wayback/available?url=${encodeURIComponent(ftpUrl)}`;
+
+      const rftp = await fetch(ftpApi);
+      const jftp = await rftp.json();
+
+      if (jftp?.archived_snapshots?.closest?.available) {
+        found.push(`[ftp.youtube.com](${jftp.archived_snapshots.closest.url})`);
+      }
+
+      if (found.length === 0) {
+        return message.reply(`❌ No archived country domains found for \`${username}\``);
+      }
+
+      await message.reply(
+        `🌍 Country archives for **${username}**:\n` + found.join("\n")
+      );
+
+    } catch (err) {
+      console.error("CCU error:", err);
+      message.reply("❌ Failed to check country archives");
+    }
+  }
   
   // === .check command ===
   if (cmd === ".check") {
