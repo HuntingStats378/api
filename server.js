@@ -1214,70 +1214,6 @@ async function executeCheck(type, value, target) {
     if (!channelData) return reply(target, "❌ No channel found via search");
     url = `https://youtube.com/channel/${channelData.channel.id}`;
   }
-  else if (cmd === "cdu") {
-  const username = value || args[0];
-  if (!username) {
-    return reply(message, "Usage: `!cdu <username>`");
-  }
-
-  try {
-    const targetUrl = `https://www.youtube.com/user/${username}`;
-
-    const cdxUrl =
-      "https://web.archive.org/cdx/search/cdx" +
-      `?url=${encodeURIComponent(targetUrl)}` +
-      "&output=json" +
-      "&fl=timestamp,original,statuscode" +
-      "&filter=statuscode:200" +
-      "&to=20111231235959" +
-      "&collapse=timestamp:8" +
-      "&sort=ascending";
-
-    const res = await fetch(cdxUrl);
-    if (!res.ok) {
-      return reply(message, "❌ Failed to contact Wayback CDX API");
-    }
-
-    const json = await res.json();
-
-    if (!json || json.length <= 1) {
-      return reply(message, `No archives found before 2012 for \`${username}\``);
-    }
-
-    const rows = json.slice(1);
-
-    // Build raw archive URLs only
-    const urls = rows.map(row => {
-      const ts = row[0];
-      return `https://web.archive.org/web/${ts}/${targetUrl}`;
-    });
-
-    // Header with count
-    await reply(
-      message,
-      `Wayback archives for https://www.youtube.com/user/${username} (before 2012)\nTotal: ${urls.length}`
-    );
-
-    // Split into safe 2000 char messages
-    let buffer = "";
-
-    for (const url of urls) {
-      if (buffer.length + url.length + 1 > 2000) {
-        await message.channel.send(buffer);
-        buffer = "";
-      }
-      buffer += url + "\n";
-    }
-
-    if (buffer.length > 0) {
-      await message.channel.send(buffer);
-    }
-
-  } catch (err) {
-    console.error("CDU error:", err);
-    reply(message, "❌ Failed to fetch archive data");
-  }
-}
 
   if (channelData) {
     const { channel, username } = channelData;
@@ -1300,6 +1236,73 @@ CLIENT_2005_CLAIMER.on("messageCreate", async (message) => {
   const [cmd, arg] = message.content.split(" ");
   if (!cmd) return;
 
+if (cmd === "!cdu" && arg) {
+    try {
+      const username = arg.replace(/[<>]/g, "");
+      const targetUrl = `https://www.youtube.com/user/${username}`;
+
+      const cdxUrl =
+        "https://web.archive.org/cdx/search/cdx" +
+        `?url=${encodeURIComponent(targetUrl)}` +
+        "&output=json" +
+        "&fl=timestamp,original,statuscode" +
+        "&filter=statuscode:200" +
+        "&to=20111231235959" +
+        "&collapse=timestamp:8" +
+        "&sort=ascending";
+
+      const res = await fetch(cdxUrl);
+      if (!res.ok) {
+        return message.reply("❌ Failed to contact Wayback CDX API");
+      }
+
+      const json = await res.json();
+
+      if (!json || json.length <= 1) {
+        return message.reply(`No archives found before 2012 for \`${username}\``);
+      }
+
+      const rows = json.slice(1);
+
+      const lines = rows.map(row => {
+        const ts = row[0];
+        const archiveUrl = `https://web.archive.org/web/${ts}/${targetUrl}`;
+
+        const formatted =
+          ts.slice(0,4) + "-" +
+          ts.slice(4,6) + "-" +
+          ts.slice(6,8) + " " +
+          ts.slice(8,10) + ":" +
+          ts.slice(10,12) + ":" +
+          ts.slice(12,14) + " UTC";
+
+        return `[${formatted}](${archiveUrl})`;
+      });
+
+      await message.reply(
+        `Wayback archives for ${targetUrl} (before 2012)\nTotal: ${lines.length}`
+      );
+
+      let buffer = "";
+
+      for (const line of lines) {
+        if (buffer.length + line.length + 1 > 2000) {
+          await message.channel.send(buffer);
+          buffer = "";
+        }
+        buffer += line + "\n";
+      }
+
+      if (buffer.length > 0) {
+        await message.channel.send(buffer);
+      }
+
+    } catch (err) {
+      console.error(err);
+      message.reply("❌ Failed to fetch archive data");
+    }
+  }
+  
   // === .check command ===
   if (cmd === ".check") {
     const embed = new EmbedBuilder()
