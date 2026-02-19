@@ -8,8 +8,6 @@ app.use(cors());
 const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, SlashCommandBuilder } = require("discord.js");
 const { google } = require("googleapis");
 const xml2js = require("xml2js");
-const fs = require("fs");
-const path = require("path");
 
 // Prevent crashes on unhandled errors
 process.on("uncaughtException", (err) => {
@@ -45,19 +43,6 @@ const HEADERS = {
   "sec-fetch-site": "same-origin",
   "x-user-agent": "Arcane-Bot-5.0"
 };
-
-// Load and parse NDJSON file at startup
-const CHANNEL_BIRTHDAY_ID = process.env.BIRTHDAY_CHANNEL_ID; // Discord channel for notificationslet lastSentChannel = null; // Store the last sent channel to continue sequentially
-
-// Set the birthday target: 20 years + 150 days ago
-const BIRTHDAY_YEARS = 20;
-const BIRTHDAY_DAYS = 150;
-
-// Load NDJSON channels
-const channels = fs.readFileSync("./channels.ndjson", "utf-8")
-  .split("\n")
-  .filter(Boolean)
-  .map(line => JSON.parse(line));
 
 wss.on("connection", async (ws, req) => {
   if (ws.path === "upload") {
@@ -1244,64 +1229,9 @@ function reply(target, content) {
   if (target.isRepliable()) return target.reply(content);
 }
 
-function getTargetBirthdayDate() {
-  const now = new Date();
-  const target = new Date();
-  target.setFullYear(now.getFullYear() - BIRTHDAY_YEARS);
-  target.setDate(target.getDate() - BIRTHDAY_DAYS);
-  return target;
-}
-
-function findNextChannel(channels, lastChannel) {
-  const targetDate = getTargetBirthdayDate();
-
-  // Find index of last sent
-  let startIndex = 0;
-  if (lastChannel) {
-    startIndex = channels.findIndex(c => c[2] === lastChannel[2]) + 1;
-  }
-
-  for (let i = startIndex; i < channels.length; i++) {
-    const channel = channels[i];
-    const created = new Date(channel[3]);
-    if (created <= targetDate) {
-      return channel;
-    }
-  }
-  return null;
-}
-
-async function sendBirthdayMessages(messageChannel) {
-  let nextChannel = findNextChannel(channels, lastSentChannel);
-
-  if (!nextChannel) return console.log("No upcoming birthday channels found.");
-
-  // There might be multiple channels on the exact same second
-  const sameTimeChannels = channels.filter(c => c[3] === nextChannel[3]);
-
-  for (const channel of sameTimeChannels) {
-    await messageChannel.send(
-      `🎉 It's time for **${channel[0]}** (@${channel[1]}) — created on ${channel[3]}!`
-    );
-    lastSentChannel = channel; // update last sent
-  }
-}
-
 // ===== TEXT COMMANDS =====
 CLIENT_2005_CLAIMER.on("messageCreate", async (message) => {
   if (message.author.bot) return;
-
-  // Get the channel to send messages
-  const messageChannel = await bot.channels.fetch(CHANNEL_ID);
-
-  // Trigger birthday notifications at startup
-  if (!messageChannel) {
-    console.error("Discord channel not found!");
-    return;
-  }
-
-  // Send next birthday channel
-  await sendBirthdayMessages(messageChannel);  
 
   const [cmd, arg] = message.content.split(" ");
   if (!cmd) return;
