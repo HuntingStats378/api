@@ -47,24 +47,17 @@ const HEADERS = {
 };
 
 // Load and parse NDJSON file at startup
-const CHANNEL_BIRTHDAY_ID = process.env.BIRTHDAY_CHANNEL_ID; // Discord channel for notifications
-const ndjsonFile = path.join(__dirname, '2005_channels.ndjson');
-const channels = fs.readFileSync(ndjsonFile, 'utf-8')
-  .trim()
-  .split('\n')
-  .map(line => JSON.parse(line))
-  .map(item => ({
-    name: item[0],
-    handle: item[1],
-    channelId: item[2],
-    createdAt: new Date(item[3]),
-    country: item[4],
-    subs: parseInt(item[5]),
-    views: parseInt(item[6]),
-    videos: parseInt(item[7]),
-    lastUpdate: new Date(item[8]),
-    username: item[9]
-  }));
+const CHANNEL_BIRTHDAY_ID = process.env.BIRTHDAY_CHANNEL_ID; // Discord channel for notificationslet lastSentChannel = null; // Store the last sent channel to continue sequentially
+
+// Set the birthday target: 20 years + 150 days ago
+const BIRTHDAY_YEARS = 20;
+const BIRTHDAY_DAYS = 150;
+
+// Load NDJSON channels
+const channels = fs.readFileSync("./channels.ndjson", "utf-8")
+  .split("\n")
+  .filter(Boolean)
+  .map(line => JSON.parse(line));
 
 wss.on("connection", async (ws, req) => {
   if (ws.path === "upload") {
@@ -1251,31 +1244,46 @@ function reply(target, content) {
   if (target.isRepliable()) return target.reply(content);
 }
 
-function padZero(num) {
-  return String(num).padStart(2, '0');
+function getTargetBirthdayDate() {
+  const now = new Date();
+  const target = new Date();
+  target.setFullYear(now.getFullYear() - BIRTHDAY_YEARS);
+  target.setDate(target.getDate() - BIRTHDAY_DAYS);
+  return target;
 }
 
-function sendBirthdayMessages(channel, messageChannel) {
-  if (!channel || !messageChannel) return;
+function findNextChannel(channels, lastChannel) {
+  const targetDate = getTargetBirthdayDate();
 
-  const groupedBySecond = channels.reduce((acc, ch) => {
-    const key = ch.createdAt.getTime(); // milliseconds unavailable, but use full timestamp
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(ch);
-    return acc;
-  }, {});
+  // Find index of last sent
+  let startIndex = 0;
+  if (lastChannel) {
+    startIndex = channels.findIndex(c => c[2] === lastChannel[2]) + 1;
+  }
 
-  for (const key of Object.keys(groupedBySecond).sort()) {
-    const group = groupedBySecond[key];
+  for (let i = startIndex; i < channels.length; i++) {
+    const channel = channels[i];
+    const created = new Date(channel[3]);
+    if (created <= targetDate) {
+      return channel;
+    }
+  }
+  return null;
+}
 
-    // Send messages sequentially with a tiny delay to avoid Discord rate limits
-    group.forEach((ch, index) => {
-      setTimeout(() => {
-        messageChannel.send(
-          `🎉 Channel "${ch.name}" (${ch.handle}) was created on ${ch.createdAt.toISOString()}!`
-        ).catch(console.error);
-      }, index * 250); // 250ms spacing between messages
-    });
+async function sendBirthdayMessages(messageChannel) {
+  let nextChannel = findNextChannel(channels, lastSentChannel);
+
+  if (!nextChannel) return console.log("No upcoming birthday channels found.");
+
+  // There might be multiple channels on the exact same second
+  const sameTimeChannels = channels.filter(c => c[3] === nextChannel[3]);
+
+  for (const channel of sameTimeChannels) {
+    await messageChannel.send(
+      `🎉 It's time for **${channel[0]}** (@${channel[1]}) — created on ${channel[3]}!`
+    );
+    lastSentChannel = channel; // update last sent
   }
 }
 
@@ -1287,7 +1295,13 @@ CLIENT_2005_CLAIMER.on("messageCreate", async (message) => {
   const messageChannel = await bot.channels.fetch(CHANNEL_ID);
 
   // Trigger birthday notifications at startup
-  sendBirthdayMessages(channels, messageChannel);  
+  if (!messageChannel) {
+    console.error("Discord channel not found!");
+    return;
+  }
+
+  // Send next birthday channel
+  await sendBirthdayMessages(messageChannel);  
 
   const [cmd, arg] = message.content.split(" ");
   if (!cmd) return;
