@@ -8,6 +8,8 @@ app.use(cors());
 const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, SlashCommandBuilder } = require("discord.js");
 const { google } = require("googleapis");
 const xml2js = require("xml2js");
+const fs = require("fs");
+const path = require("path");
 
 // Prevent crashes on unhandled errors
 process.on("uncaughtException", (err) => {
@@ -43,6 +45,26 @@ const HEADERS = {
   "sec-fetch-site": "same-origin",
   "x-user-agent": "Arcane-Bot-5.0"
 };
+
+// Load and parse NDJSON file at startup
+const CHANNEL_BIRTHDAY_ID = process.env.BIRTHDAY_CHANNEL_ID; // Discord channel for notifications
+const ndjsonFile = path.join(__dirname, '2005_channels.ndjson');
+const channels = fs.readFileSync(ndjsonFile, 'utf-8')
+  .trim()
+  .split('\n')
+  .map(line => JSON.parse(line))
+  .map(item => ({
+    name: item[0],
+    handle: item[1],
+    channelId: item[2],
+    createdAt: new Date(item[3]),
+    country: item[4],
+    subs: parseInt(item[5]),
+    views: parseInt(item[6]),
+    videos: parseInt(item[7]),
+    lastUpdate: new Date(item[8]),
+    username: item[9]
+  }));
 
 wss.on("connection", async (ws, req) => {
   if (ws.path === "upload") {
@@ -1229,9 +1251,43 @@ function reply(target, content) {
   if (target.isRepliable()) return target.reply(content);
 }
 
+function padZero(num) {
+  return String(num).padStart(2, '0');
+}
+
+function sendBirthdayMessages(channel, messageChannel) {
+  if (!channel || !messageChannel) return;
+
+  const groupedBySecond = channels.reduce((acc, ch) => {
+    const key = ch.createdAt.getTime(); // milliseconds unavailable, but use full timestamp
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(ch);
+    return acc;
+  }, {});
+
+  for (const key of Object.keys(groupedBySecond).sort()) {
+    const group = groupedBySecond[key];
+
+    // Send messages sequentially with a tiny delay to avoid Discord rate limits
+    group.forEach((ch, index) => {
+      setTimeout(() => {
+        messageChannel.send(
+          `🎉 Channel "${ch.name}" (${ch.handle}) was created on ${ch.createdAt.toISOString()}!`
+        ).catch(console.error);
+      }, index * 250); // 250ms spacing between messages
+    });
+  }
+}
+
 // ===== TEXT COMMANDS =====
 CLIENT_2005_CLAIMER.on("messageCreate", async (message) => {
   if (message.author.bot) return;
+
+  // Get the channel to send messages
+  const messageChannel = await bot.channels.fetch(CHANNEL_ID);
+
+  // Trigger birthday notifications at startup
+  sendBirthdayMessages(channels, messageChannel);  
 
   const [cmd, arg] = message.content.split(" ");
   if (!cmd) return;
