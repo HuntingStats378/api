@@ -44,63 +44,6 @@ const HEADERS = {
   "x-user-agent": "Arcane-Bot-5.0"
 };
 
-// ---- Birthday integration ----
-const fs = require("fs");
-let lastSentChannel = null; // Store the last sent channel to continue sequentially
-
-// Set the birthday target: 20 years + 150 days ago
-const BIRTHDAY_YEARS = 20;
-const BIRTHDAY_DAYS = 150;
-
-// Load NDJSON channels
-const channels = fs.readFileSync("./2005_channels.ndjson", "utf-8")
-  .split("\n")
-  .filter(Boolean)
-  .map(line => JSON.parse(line));
-
-function getTargetBirthdayDate() {
-  const now = new Date();
-  const target = new Date();
-  target.setFullYear(now.getFullYear() - BIRTHDAY_YEARS);
-  target.setDate(target.getDate() - BIRTHDAY_DAYS);
-  return target;
-}
-
-function findNextChannel(channels, lastChannel) {
-  const targetDate = getTargetBirthdayDate();
-
-  // Find index of last sent
-  let startIndex = 0;
-  if (lastChannel) {
-    startIndex = channels.findIndex(c => c[2] === lastChannel[2]) + 1;
-  }
-
-  for (let i = startIndex; i < channels.length; i++) {
-    const channel = channels[i];
-    const created = new Date(channel[3]);
-    if (created <= targetDate) {
-      return channel;
-    }
-  }
-  return null;
-}
-
-async function sendBirthdayMessages(messageChannel) {
-  let nextChannel = findNextChannel(channels, lastSentChannel);
-
-  if (!nextChannel) return console.log("No upcoming birthday channels found.");
-
-  // There might be multiple channels on the exact same second
-  const sameTimeChannels = channels.filter(c => c[3] === nextChannel[3]);
-
-  for (const channel of sameTimeChannels) {
-    await messageChannel.send(
-      `🎉 It's time for **${channel[0]}** (@${channel[1]}) — created on ${channel[3]}!`
-    );
-    lastSentChannel = channel; // update last sent
-  }
-}
-
 wss.on("connection", async (ws, req) => {
   if (ws.path === "upload") {
     console.log("New WebSocket connection established");
@@ -1289,17 +1232,6 @@ function reply(target, content) {
 // ===== TEXT COMMANDS =====
 CLIENT_2005_CLAIMER.on("messageCreate", async (message) => {
   if (message.author.bot) return;
-
-// Replace with your Discord channel ID
-  const messageChannel = bot.channels.cache.get("YOUR_DISCORD_CHANNEL_ID");
-
-  if (!messageChannel) {
-    console.error("Discord channel not found!");
-    return;
-  }
-
-  // Send next birthday channel
-  await sendBirthdayMessages(messageChannel);  
 
   const [cmd, arg] = message.content.split(" ");
   if (!cmd) return;
