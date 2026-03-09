@@ -1303,6 +1303,93 @@ if (cmd === "!cdu" && arg) {
     }
   }
 
+// ===== THUMBNAIL ARCHIVE COMMAND =====
+if (cmd === "!ta" && arg) {
+
+  try {
+
+    const videoId = arg.trim();
+
+    if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) {
+      return message.reply("❌ Invalid YouTube video ID");
+    }
+
+    const servers = [
+      "i.ytimg.com",
+      "i1.ytimg.com",
+      "i2.ytimg.com",
+      "i3.ytimg.com",
+      "i4.ytimg.com",
+      "img.youtube.com"
+    ];
+
+    const types = [
+      "maxresdefault.jpg",
+      "sddefault.jpg",
+      "hqdefault.jpg",
+      "mqdefault.jpg",
+      "default.jpg"
+    ];
+
+    const found = [];
+
+    for (const server of servers) {
+
+      for (const type of types) {
+
+        const thumbUrl = `https://${server}/vi/${videoId}/${type}`;
+
+        const api =
+          `https://archive.org/wayback/available?url=` +
+          encodeURIComponent(thumbUrl);
+
+        const res = await fetch(api);
+        const json = await res.json();
+
+        if (json?.archived_snapshots?.closest?.available) {
+
+          const archive =
+            json.archived_snapshots.closest.url;
+
+          found.push(`${type} → ${archive}`);
+
+        }
+
+      }
+
+    }
+
+    if (!found.length) {
+      return message.reply(
+        `❌ No archived thumbnails found for **${videoId}**`
+      );
+    }
+
+    let msg = `🖼 Archived thumbnails for **${videoId}**\n\n`;
+
+    for (const line of found) {
+
+      if (msg.length + line.length > 1900) {
+        await message.channel.send(msg);
+        msg = "";
+      }
+
+      msg += line + "\n";
+    }
+
+    if (msg.length) {
+      await message.channel.send(msg);
+    }
+
+  } catch (err) {
+
+    console.error(err);
+    message.reply("❌ Failed to search thumbnail archives");
+
+  }
+
+}
+  
 if (cmd === "!ccu" && arg) {
     try {
       const username = arg.replace(/[<>]/g, "");
