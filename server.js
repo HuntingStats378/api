@@ -8,6 +8,7 @@ app.use(cors());
 const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, SlashCommandBuilder } = require("discord.js");
 const { google } = require("googleapis");
 const xml2js = require("xml2js");
+const CDU_MEMORY = new Map();
 
 // Prevent crashes on unhandled errors
 process.on("uncaughtException", (err) => {
@@ -1225,27 +1226,65 @@ async function executeCheck(type, value, target) {
 
 async function findIncrementalFromArchives(archives) {
 
-  for (const snapshotUrl of archives) {
+  // Prioritize years where IDs appear most
+  const priority = [];
+  const secondary = [];
 
-    try {
+  for (const url of archives) {
 
-      const res = await fetch(snapshotUrl);
-      if (!res.ok) continue;
+    const match = url.match(/\/web\/(\d{4})/);
+    const year = match ? parseInt(match[1]) : 0;
 
-      const html = await res.text();
+    if (year >= 2009 && year <= 2011) {
+      priority.push(url);
+    } else {
+      secondary.push(url);
+    }
 
-      let match;
+  }
 
-      match = html.match(/friend_id=([A-Za-z0-9_-]+)/);
-      if (match) return match[1];
+  const ordered = [...priority, ...secondary];
 
-      match = html.match(/user_profile-(\d+)/);
-      if (match) return match[1];
+  const batchSize = 6; // parallel fetch count
 
-      match = html.match(/block_user[^0-9]+(\d+)/);
-      if (match) return match[1];
+  for (let i = 0; i < ordered.length; i += batchSize) {
 
-    } catch {}
+    const batch = ordered.slice(i, i + batchSize);
+
+    const results = await Promise.allSettled(
+      batch.map(async (snapshotUrl) => {
+
+        const res = await fetch(snapshotUrl);
+        if (!res.ok) return null;
+
+        const html = await res.text();
+
+        let match;
+
+        // MOST COMMON (2009–2011)
+        match = html.match(/block_user[^0-9]+(\d+)/);
+        if (match) return match[1];
+
+        // LATE 2008
+        match = html.match(/user_profile-(\d+)/);
+        if (match) return match[1];
+
+        // EARLY 2006–2008
+        match = html.match(/friend_id=([A-Za-z0-9_-]+)/);
+        if (match) return match[1];
+
+        return null;
+
+      })
+    );
+
+    for (const r of results) {
+
+      if (r.status === "fulfilled" && r.value) {
+        return r.value;
+      }
+
+    }
 
   }
 
@@ -1258,13 +1297,7 @@ function reply(target, content) {
   if (target.isRepliable()) return target.reply(content);
 }
 
-// ===== TEXT COMMANDS =====
-CLIENT_2005_CLAIMER.on("messageCreate", async (message) => {
-  if (message.author.bot) return;
-  const [cmd, arg] = message.content.split(" ");
-  if (!cmd) return;
-
-CLIENT_2005_CLAIMER.on(Events.InteractionCreate, async interaction => {
+CLIENT_2005_CLAIMER.on("interactionCreate", async interaction => {
 
   if (!interaction.isButton()) return;
   if (!interaction.customId.startsWith("inc_")) return;
@@ -1283,8 +1316,7 @@ CLIENT_2005_CLAIMER.on(Events.InteractionCreate, async interaction => {
   if (interaction.customId.startsWith("inc_yes_")) {
 
     await interaction.update({
-      content:
-        `🔎 Searching ${memory.archives.length} stored snapshots for incremental ID of **${memory.username}**...`,
+      content: `🔎 Searching snapshots for incremental ID of **${memory.username}**...`,
       components: []
     });
 
@@ -1304,8 +1336,7 @@ CLIENT_2005_CLAIMER.on(Events.InteractionCreate, async interaction => {
   if (interaction.customId.startsWith("inc_profile_")) {
 
     await interaction.update({
-      content:
-        `🔎 Checking profile archives for **${memory.username}**...`,
+      content: `🔎 Checking profile archives for **${memory.username}**...`,
       components: []
     });
 
@@ -1348,8 +1379,7 @@ CLIENT_2005_CLAIMER.on(Events.InteractionCreate, async interaction => {
     if (!found.length) {
 
       await interaction.editReply({
-        content:
-          `❌ No profile archives found for **${memory.username}**`
+        content: `❌ No profile archives found`
       });
 
     } else {
@@ -1374,7 +1404,7 @@ CLIENT_2005_CLAIMER.on(Events.InteractionCreate, async interaction => {
 
       await interaction.editReply({
         content:
-          `✅ Found ${found.length} profile archives for **${memory.username}**`
+          `✅ Found ${found.length} profile archives`
       });
 
     }
@@ -1394,9 +1424,16 @@ CLIENT_2005_CLAIMER.on(Events.InteractionCreate, async interaction => {
   }
 
 });
-  
-// ===== CDU COMMAND =====
-if (cmd === "!cdu" && arg) {
+
+CLIENT_2005_CLAIMER.on("messageCreate", async message => {
+
+  if (message.author.bot) return;
+
+  const parts = message.content.split(" ");
+  const cmd = parts[0];
+  const arg = parts[1];
+
+  if (cmd !== "!cdu" || !arg) return;
 
   try {
 
@@ -1429,7 +1466,6 @@ if (cmd === "!cdu" && arg) {
       return `https://web.archive.org/web/${ts}/${targetUrl}`;
     });
 
-    // Buttons
     const incBtn = new ButtonBuilder()
       .setCustomId(`inc_yes_${message.id}`)
       .setLabel("Find Incremental ID")
@@ -1445,37 +1481,35 @@ if (cmd === "!cdu" && arg) {
       .setLabel("Cancel")
       .setStyle(ButtonStyle.Secondary);
 
-    const rowButtons =
+    const row =
       new ActionRowBuilder().addComponents(
         incBtn,
         profileBtn,
         cancelBtn
       );
 
-    const reply = await message.reply({
+    await message.reply({
       content:
-        `✅ Found ${archiveList.length} archives for **${username}** (before 2012)\n\nWhat would you like to do?`,
-      components: [rowButtons]
+        `✅ Found ${archiveList.length} archives for **${username}** (before 2012)\n\nChoose an option below:`,
+      components: [row]
     });
 
-    // Store archives in memory
-    CDU_MEMORY.set(reply.id, {
+    CDU_MEMORY.set(message.id, {
       username,
-      archives: archiveList,
-      created: Date.now()
+      archives: archiveList
     });
 
-    // Send archive list
     let buffer = "";
 
     for (const url of archiveList) {
 
-      if (buffer.length + url.length + 1 > 2000) {
+      if (buffer.length + url.length > 1900) {
         await message.channel.send(buffer);
         buffer = "";
       }
 
       buffer += url + "\n";
+
     }
 
     if (buffer.length) {
@@ -1489,7 +1523,7 @@ if (cmd === "!cdu" && arg) {
 
   }
 
-}
+});
 
 // ===== THUMBNAIL ARCHIVE COMMAND =====
 if (cmd === "!ta" && arg) {
