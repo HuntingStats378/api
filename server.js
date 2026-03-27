@@ -8,7 +8,6 @@ app.use(cors());
 const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, SlashCommandBuilder } = require("discord.js");
 const { google } = require("googleapis");
 const xml2js = require("xml2js");
-const CDU_MEMORY = new Map();
 
 // Prevent crashes on unhandled errors
 process.on("uncaughtException", (err) => {
@@ -1224,306 +1223,85 @@ async function executeCheck(type, value, target) {
   }
 }
 
-async function findIncrementalFromArchives(archives) {
-
-  // Prioritize years where IDs appear most
-  const priority = [];
-  const secondary = [];
-
-  for (const url of archives) {
-
-    const match = url.match(/\/web\/(\d{4})/);
-    const year = match ? parseInt(match[1]) : 0;
-
-    if (year >= 2009 && year <= 2011) {
-      priority.push(url);
-    } else {
-      secondary.push(url);
-    }
-
-  }
-
-  const ordered = [...priority, ...secondary];
-
-  const batchSize = 6; // parallel fetch count
-
-  for (let i = 0; i < ordered.length; i += batchSize) {
-
-    const batch = ordered.slice(i, i + batchSize);
-
-    const results = await Promise.allSettled(
-      batch.map(async (snapshotUrl) => {
-
-        const res = await fetch(snapshotUrl);
-        if (!res.ok) return null;
-
-        const html = await res.text();
-
-        let match;
-
-        // MOST COMMON (2009–2011)
-        match = html.match(/block_user[^0-9]+(\d+)/);
-        if (match) return match[1];
-
-        // LATE 2008
-        match = html.match(/user_profile-(\d+)/);
-        if (match) return match[1];
-
-        // EARLY 2006–2008
-        match = html.match(/friend_id=([A-Za-z0-9_-]+)/);
-        if (match) return match[1];
-
-        return null;
-
-      })
-    );
-
-    for (const r of results) {
-
-      if (r.status === "fulfilled" && r.value) {
-        return r.value;
-      }
-
-    }
-
-  }
-
-  return null;
-}
-
 // Helper to reply to message or interaction
 function reply(target, content) {
   if (target.reply) return target.reply(content);
   if (target.isRepliable()) return target.reply(content);
 }
 
-CLIENT_2005_CLAIMER.on("interactionCreate", async interaction => {
+// ===== TEXT COMMANDS =====
+CLIENT_2005_CLAIMER.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
 
-  if (!interaction.isButton()) return;
-  if (!interaction.customId.startsWith("inc_")) return;
+  const [cmd, arg] = message.content.split(" ");
+  if (!cmd) return;
 
-  const messageId = interaction.customId.split("_")[2];
-  const memory = CDU_MEMORY.get(messageId);
+if (cmd === "!cdu" && arg) {
+    try {
+      const username = arg.replace(/[<>]/g, "");
+      const targetUrl = `https://www.youtube.com/user/${username}`;
 
-  if (!memory) {
-    return interaction.reply({
-      content: "❌ This request expired.",
-      ephemeral: true
-    });
-  }
-
-  // FIND INCREMENTAL ID
-  if (interaction.customId.startsWith("inc_yes_")) {
-
-    await interaction.update({
-      content: `🔎 Searching snapshots for incremental ID of **${memory.username}**...`,
-      components: []
-    });
-
-    const incId =
-      await findIncrementalFromArchives(memory.archives);
-
-    await interaction.editReply({
-      content:
-        `✅ Incremental ID result for **${memory.username}**\n\n` +
-        `ID: **${incId || "Not found"}**`
-    });
-
-    CDU_MEMORY.delete(messageId);
-  }
-
-  // PROFILE ARCHIVES
-  if (interaction.customId.startsWith("inc_profile_")) {
-
-    await interaction.update({
-      content: `🔎 Checking profile archives for **${memory.username}**...`,
-      components: []
-    });
-
-    const targets = [
-      `http://www.youtube.com/profile?user=${memory.username}`,
-      `http://www.youtube.com/profile.php?user=${memory.username}`
-    ];
-
-    const found = [];
-
-    for (const url of targets) {
-
-      const cdx =
+      const cdxUrl =
         "https://web.archive.org/cdx/search/cdx" +
-        `?url=${encodeURIComponent(url)}` +
+        `?url=${encodeURIComponent(targetUrl)}` +
         "&output=json" +
         "&fl=timestamp,original,statuscode" +
         "&filter=statuscode:200" +
-        "&collapse=timestamp:8";
+        "&to=20111231235959" +
+        "&collapse=timestamp:8" +
+        "&sort=ascending";
 
-      const res = await fetch(cdx);
+      const res = await fetch(cdxUrl);
+      if (!res.ok) {
+        return message.reply("❌ Failed to contact Wayback CDX API");
+      }
+
       const json = await res.json();
 
-      if (json.length > 1) {
-
-        for (let i = 1; i < json.length; i++) {
-
-          const ts = json[i][0];
-
-          found.push(
-            `https://web.archive.org/web/${ts}/${url}`
-          );
-
-        }
-
+      if (!json || json.length <= 1) {
+        return message.reply(`No archives found before 2012 for \`${username}\``);
       }
 
-    }
+      const rows = json.slice(1);
 
-    if (!found.length) {
+      const lines = rows.map(row => {
+        const ts = row[0];
+        const archiveUrl = `https://web.archive.org/web/${ts}/${targetUrl}`;
 
-      await interaction.editReply({
-        content: `❌ No profile archives found`
+        const formatted =
+          ts.slice(0,4) + "-" +
+          ts.slice(4,6) + "-" +
+          ts.slice(6,8) + " " +
+          ts.slice(8,10) + ":" +
+          ts.slice(10,12) + ":" +
+          ts.slice(12,14) + " UTC";
+
+        return `[${formatted}](${archiveUrl})`;
       });
 
-    } else {
+      await message.reply(
+        `Wayback archives for ${targetUrl} (before 2012)\nTotal: ${lines.length}`
+      );
 
-      let msg =
-        `📜 Profile archives for **${memory.username}**\n\n`;
+      let buffer = "";
 
-      for (const url of found) {
-
-        if (msg.length + url.length > 1900) {
-          await interaction.channel.send(msg);
-          msg = "";
+      for (const line of lines) {
+        if (buffer.length + line.length + 1 > 2000) {
+          await message.channel.send(buffer);
+          buffer = "";
         }
-
-        msg += url + "\n";
-
+        buffer += line + "\n";
       }
 
-      if (msg.length) {
-        await interaction.channel.send(msg);
-      }
-
-      await interaction.editReply({
-        content:
-          `✅ Found ${found.length} profile archives`
-      });
-
-    }
-
-  }
-
-  // CANCEL
-  if (interaction.customId.startsWith("inc_no_")) {
-
-    await interaction.update({
-      content:
-        `Cancelled incremental ID search for **${memory.username}**.`,
-      components: []
-    });
-
-    CDU_MEMORY.delete(messageId);
-  }
-
-});
-
-CLIENT_2005_CLAIMER.on("messageCreate", async message => {
-
-  if (message.author.bot) return;
-
-  const parts = message.content.split(" ");
-  const cmd = parts[0];
-  const arg = parts[1];
-
-  if (cmd !== "!cdu" || !arg) return;
-
-  try {
-
-    const username = arg.replace(/[<>]/g, "");
-    const targetUrl = `https://www.youtube.com/user/${username}`;
-
-    const cdxUrl =
-      "https://web.archive.org/cdx/search/cdx" +
-      `?url=${encodeURIComponent(targetUrl)}` +
-      "&output=json" +
-      "&fl=timestamp,original,statuscode" +
-      "&filter=statuscode:200" +
-      "&to=20111231235959" +
-      "&collapse=timestamp:8" +
-      "&sort=ascending";
-
-    const res = await fetch(cdxUrl);
-    const json = await res.json();
-
-    if (!json || json.length <= 1) {
-      return message.reply(
-        `❌ No archives found before 2012 for **${username}**`
-      );
-    }
-
-    const rows = json.slice(1);
-
-    const archiveList = rows.map(row => {
-      const ts = row[0];
-      return `https://web.archive.org/web/${ts}/${targetUrl}`;
-    });
-
-    const incBtn = new ButtonBuilder()
-      .setCustomId(`inc_yes_${message.id}`)
-      .setLabel("Find Incremental ID")
-      .setStyle(ButtonStyle.Success);
-
-    const profileBtn = new ButtonBuilder()
-      .setCustomId(`inc_profile_${message.id}`)
-      .setLabel("Check Profile Archives")
-      .setStyle(ButtonStyle.Primary);
-
-    const cancelBtn = new ButtonBuilder()
-      .setCustomId(`inc_no_${message.id}`)
-      .setLabel("Cancel")
-      .setStyle(ButtonStyle.Secondary);
-
-    const row =
-      new ActionRowBuilder().addComponents(
-        incBtn,
-        profileBtn,
-        cancelBtn
-      );
-
-    await message.reply({
-      content:
-        `✅ Found ${archiveList.length} archives for **${username}** (before 2012)\n\nChoose an option below:`,
-      components: [row]
-    });
-
-    CDU_MEMORY.set(message.id, {
-      username,
-      archives: archiveList
-    });
-
-    let buffer = "";
-
-    for (const url of archiveList) {
-
-      if (buffer.length + url.length > 1900) {
+      if (buffer.length > 0) {
         await message.channel.send(buffer);
-        buffer = "";
       }
 
-      buffer += url + "\n";
-
+    } catch (err) {
+      console.error(err);
+      message.reply("❌ Failed to fetch archive data");
     }
-
-    if (buffer.length) {
-      await message.channel.send(buffer);
-    }
-
-  } catch (err) {
-
-    console.error(err);
-    message.reply("❌ Failed to fetch archives");
-
   }
-
-});
 
 // ===== THUMBNAIL ARCHIVE COMMAND =====
 if (cmd === "!ta" && arg) {
