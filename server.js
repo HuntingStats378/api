@@ -687,7 +687,7 @@ async function fetchhyoutubeapivideo(videoId) {
 
 app.get("/api/youtubeapi/video/:id", async (req, res) => {
   const { id } = req.params;
-  res.json(await fetchyoutubevideo(id));
+  res.json(await fetchyoutubeapivideo(id));
 });
 
 app.get("/api/lurkr/levels/:id/:page", async (req, res) => {
