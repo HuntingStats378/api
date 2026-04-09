@@ -674,7 +674,7 @@ app.get("/api/twitter/user/:id", async (req, res) => {
   res.json(await fetchtwitteruser(id));
 });
 
-async function fetchyoutubeapivideo(videoId) {
+async function fetchhapiapivideo(videoId) {
   try {
     fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${videoId}&key=${YOUTUBE_API_KEY}`),
 
@@ -686,7 +686,7 @@ async function fetchyoutubeapivideo(videoId) {
   }
 }
 
-app.get("/api/youtubeapi/video/:id", async (req, res) => {
+app.get("/api/api/video/:id", async (req, res) => {
   const { id } = req.params;
   res.json(await fetchyoutubevideo(id));
 });
