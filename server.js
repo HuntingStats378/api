@@ -676,8 +676,9 @@ app.get("/api/twitter/user/:id", async (req, res) => {
 
 async function fetchhyoutubeapivideo(videoId) {
   try {
-    const data = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${videoId}&key=${YOUTUBE_API_KEY}`),
-    return await data.json();
+    const data = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${videoId}&key=${YOUTUBE_API_KEY}`);
+    const response = await data.json();
+    return response;
   } catch (error) {
     console.error(error);
     return { error: "Failed to fetch info" };
