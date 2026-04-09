@@ -674,6 +674,23 @@ app.get("/api/twitter/user/:id", async (req, res) => {
   res.json(await fetchtwitteruser(id));
 });
 
+async function fetchyoutubeapivideo(videoId) {
+  try {
+    fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${videoId}&key=${YOUTUBE_API_KEY}`),
+
+    const response = await data.json();
+    return response
+  } catch (error) {
+    console.error(error);
+    return { error: "Failed to fetch info" };
+  }
+}
+
+app.get("/api/youtubeapi/video/:id", async (req, res) => {
+  const { id } = req.params;
+  res.json(await fetchyoutubevideo(id));
+});
+
 app.get("/api/lurkr/levels/:id/:page", async (req, res) => {
   const { id, page } = req.params;
   const pageNumber = parseInt(page);
