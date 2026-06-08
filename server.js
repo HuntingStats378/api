@@ -1266,7 +1266,7 @@ CLIENT_2005_CLAIMER.on("messageCreate", async (message) => {
   const [cmd, arg] = message.content.split(" ");
   if (!cmd) return;
 
-if (command === 'id') {
+if (cmd === 'id') {
     const incvideoId = args[0];
 
     if (!incvideoId) {
