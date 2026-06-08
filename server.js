@@ -8,6 +8,20 @@ app.use(cors());
 const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, SlashCommandBuilder } = require("discord.js");
 const { google } = require("googleapis");
 const xml2js = require("xml2js");
+const fs = require('fs');
+
+const incvideoIds = fs
+    .readFileSync('./621k.txt', 'utf8')
+    .split(/\r?\n/)
+    .filter(Boolean);
+
+global.incvideoIdLookup = new Map();
+
+incvideoIds.forEach((id, index) => {
+    global.incvideoIdLookup.set(id.trim(), index + 1);
+});
+
+console.log(`Loaded ${global.incvideoIdLookup.size.toLocaleString()} Incremental IDs.`);
 
 // Prevent crashes on unhandled errors
 process.on("uncaughtException", (err) => {
@@ -1251,6 +1265,24 @@ CLIENT_2005_CLAIMER.on("messageCreate", async (message) => {
 
   const [cmd, arg] = message.content.split(" ");
   if (!cmd) return;
+
+if (command === 'id') {
+    const incvideoId = args[0];
+
+    if (!incvideoId) {
+        return message.reply('Usage: !id <id>');
+    }
+
+    const position = global.incvideoIdLookup.get(incvideoId);
+
+    if (!position) {
+        return message.reply('ID not found.');
+    }
+
+    return message.reply(
+        `📍 ${incvideoId} is #${position.toLocaleString()}`
+    );
+}  
 
 if (cmd === "!cdu" && arg) {
     try {
