@@ -1280,7 +1280,7 @@ if (cmd === "!id" && arg) {
     }
 
     return message.reply(
-        `📍 ${incvideoId} is #${position.toLocaleString()}`
+        `${position.toLocaleString()}`
     );
 }  
 
