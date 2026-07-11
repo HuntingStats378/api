@@ -5,7 +5,8 @@ const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
 const app = express();
 app.use(cors());
-const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, SlashCommandBuilder } = require("discord.js");
+const path = require("path");
+const { Client, GatewayIntentBits, EmbedBuilder, AttachmentBuilder, REST, Routes, SlashCommandBuilder } = require("discord.js");
 const { google } = require("googleapis");
 const xml2js = require("xml2js");
 const fs = require('fs');
@@ -31,6 +32,74 @@ process.on("uncaughtException", (err) => {
 process.on("unhandledRejection", (reason, promise) => {
   console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
+
+// Put these near the top of your bot file (outside the messageCreate event)
+const ARCHIVE_FOLDER = "./chunks";          // Folder containing 0.txt, 1.txt, etc.
+const INDEX_FILE = "./chunks/sindexsorted.index";
+
+// Load index once at startup
+const archiveIndex = new Map();
+
+fs.readFileSync(INDEX_FILE, "utf8")
+    .split(/\r?\n/)
+    .forEach(line => {
+        if (!line.trim()) return;
+
+        const [id, file, offset] = line.split("|");
+
+        archiveIndex.set(id, {
+            file: Number(file),
+            offset: Number(offset)
+        });
+    });
+
+// Open all archive files once
+const archiveFDs = [];
+
+for (let i = 0; i < 26; i++) {
+    archiveFDs[i] = fs.openSync(
+        path.join(ARCHIVE_FOLDER, `${i}.txt`),
+        "r"
+    );
+}
+
+// Reads one complete line starting at a byte offset
+function readArchiveLine(fd, offset) {
+
+    const chunkSize = 4096;
+
+    let position = offset;
+    let result = "";
+
+    while (true) {
+
+        const buffer = Buffer.alloc(chunkSize);
+
+        const bytesRead = fs.readSync(
+            fd,
+            buffer,
+            0,
+            chunkSize,
+            position
+        );
+
+        if (!bytesRead) break;
+
+        const chunk = buffer.toString("utf8", 0, bytesRead);
+
+        const newline = chunk.indexOf("\n");
+
+        if (newline !== -1) {
+            result += chunk.substring(0, newline);
+            break;
+        }
+
+        result += chunk;
+        position += bytesRead;
+    }
+
+    return result.trim();
+}
 
 // === Discord Bot Setup ===
 const bot = new Client({ intents: [GatewayIntentBits.DirectMessages, GatewayIntentBits.Guilds], partials: ['CHANNEL'] });
@@ -1435,6 +1504,66 @@ if (cmd === "!ta" && arg) {
     message.reply("❌ Failed to search thumbnail archives");
 
   }
+
+}
+
+if (cmd === "!slashn" && arg) {
+    const converted = message.content
+        .slice("!slashn".length)
+        .trim()
+        .replace(/\r?\n/g, "\\n");
+
+    message.channel.send(converted);
+}
+
+if ((cmd === "!archives" || cmd === "!ac") && arg) {
+
+    const lookup = archiveIndex.get(arg);
+
+    if (!lookup) {
+        return message.reply("Archive not found.");
+    }
+
+    const line = readArchiveLine(
+        archiveFDs[lookup.file],
+        lookup.offset
+    );
+
+    const parts = line.split(" ");
+
+    // remove video id
+    parts.shift();
+
+    const links = parts.filter(Boolean);
+
+    if (!links.length) {
+        return message.reply("No archive URLs stored.");
+    }
+
+    const attachment = new AttachmentBuilder(
+        Buffer.from(links.join("\n"), "utf8"),
+        {
+            name: `${arg}.txt`
+        }
+    );
+
+    let reply =
+        `**${arg}** (${numberWithCommas(global.incvideoIdLookup.get(arg))})\n` +
+        `Found **${links.length}** archive URLs.\n\n`;
+
+    reply += links
+        .slice(0, 10)
+        .map((url, i) => `${i + 1}. <${url}>`)
+        .join("\n");
+
+    if (links.length > 10) {
+        reply += `\n\n...and ${links.length - 10} more in the attached txt.`;
+    }
+
+    message.reply({
+        content: reply,
+        files: [attachment]
+    });
 
 }
   
