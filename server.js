@@ -1548,8 +1548,8 @@ if ((cmd === "!archives" || cmd === "!ac") && arg) {
     );
 
     let reply =
-        `**${arg}** (${numberWithCommas(global.incvideoIdLookup.get(arg))})\n` +
-        `Found **${links.length}** archive URLs.\n\n`;
+        `**${arg}** (#${numberWithCommas(global.incvideoIdLookup.get(arg))})\n` +
+        `Found **${numberWithCommas(links.length)}** archive URLs.\n\n`;
 
     reply += links
         .slice(0, 10)
@@ -1557,7 +1557,7 @@ if ((cmd === "!archives" || cmd === "!ac") && arg) {
         .join("\n");
 
     if (links.length > 10) {
-        reply += `\n\n...and ${links.length - 10} more in the attached txt.`;
+        reply += `\n\n...and ${numberWithCommas(links.length - 10)} more in the attached txt.`;
     }
 
     message.reply({
