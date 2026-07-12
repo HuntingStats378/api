@@ -36,6 +36,124 @@ process.on("unhandledRejection", (reason, promise) => {
 // Put these near the top of your bot file (outside the messageCreate event)
 const ARCHIVE_FOLDER = "./chunks";          // Folder containing 0.txt, 1.txt, etc.
 const INDEX_FILE = "./chunks/sindexsorted.index";
+const USER_CHUNKS_DIR = path.join(__dirname, 'user_chunks');
+const USER_INDEX_FILE = path.join(USER_CHUNKS_DIR, 'sindexsorted.index');
+const VIDEO_CHUNKS_DIR = path.join(__dirname, 'video_chunks');
+const VIDEO_INDEX_FILE = path.join(VIDEO_CHUNKS_DIR, 'sindexsorted.index');
+const PREFIX_LENGTH = 3; // Updated to match your index depth of 3 characters
+
+function loadUserIndexOptimized() {
+    const indexMap = new Map();
+    if (!fs.existsSync(USER_INDEX_FILE)) {
+        console.error(`Index file not found at: ${USER_INDEX_FILE}`);
+        return indexMap;
+    }
+
+    const data = fs.readFileSync(USER_INDEX_FILE, 'utf8');
+    const lines = data.split('\n');
+    const fileOffsets = {};
+
+    for (const line of lines) {
+        if (!line.trim()) continue;
+        const [prefix, fileNum, byteOffset] = line.split('|');
+        const key = prefix.toLowerCase();
+        const fNum = parseInt(fileNum, 10);
+        const offset = parseInt(byteOffset, 10);
+
+        if (!indexMap.has(key)) indexMap.set(key, []);
+        indexMap.get(key).push({ fileNum: fNum, offset: offset, endOffset: -1 });
+
+        if (!fileOffsets[fNum]) fileOffsets[fNum] = [];
+        fileOffsets[fNum].push({ key, offset });
+    }
+
+    for (const fNum in fileOffsets) {
+        fileOffsets[fNum].sort((a, b) => a.offset - b.offset);
+        for (let i = 0; i < fileOffsets[fNum].length; i++) {
+            const current = fileOffsets[fNum][i];
+            const next = fileOffsets[fNum][i + 1];
+            
+            const locations = indexMap.get(current.key);
+            const locObj = locations.find(l => l.fileNum === parseInt(fNum, 10) && l.offset === current.offset);
+            
+            if (locObj) {
+                locObj.endOffset = next ? next.offset : -1;
+            }
+        }
+    }
+    return indexMap;
+}
+
+// Highly efficient slice reader
+function scanChunkRange(filePath, startOffset, endOffset, targetsSet) {
+    const matches = [];
+    let finalEnd = endOffset;
+
+    if (finalEnd === -1) {
+        finalEnd = fs.statSync(filePath).size;
+    }
+
+    const bufferSize = finalEnd - startOffset;
+    if (bufferSize <= 0) return matches;
+
+    const fd = fs.openSync(filePath, 'r');
+    const buffer = Buffer.alloc(bufferSize);
+    fs.readSync(fd, buffer, 0, bufferSize, startOffset);
+    fs.closeSync(fd);
+
+    const lines = buffer.toString('utf8').split('\n');
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        if (targetsSet.has(trimmed.toLowerCase())) {
+            matches.push(trimmed); 
+        }
+    }
+    return matches;
+}
+
+function loadVideoIndexOptimized() {
+    const indexMap = new Map();
+    if (!fs.existsSync(VIDEO_INDEX_FILE)) {
+        console.error(`Index file not found at: ${VIDEO_INDEX_FILE}`);
+        return indexMap;
+    }
+
+    const data = fs.readFileSync(VIDEO_INDEX_FILE, 'utf8');
+    const lines = data.split('\n');
+    const fileOffsets = {};
+
+    for (const line of lines) {
+        if (!line.trim()) continue;
+        const [prefix, fileNum, byteOffset] = line.split('|');
+        const key = prefix.toLowerCase();
+        const fNum = parseInt(fileNum, 10);
+        const offset = parseInt(byteOffset, 10);
+
+        if (!indexMap.has(key)) indexMap.set(key, []);
+        indexMap.get(key).push({ fileNum: fNum, offset: offset, endOffset: -1 });
+
+        if (!fileOffsets[fNum]) fileOffsets[fNum] = [];
+        fileOffsets[fNum].push({ key, offset });
+    }
+
+    for (const fNum in fileOffsets) {
+        fileOffsets[fNum].sort((a, b) => a.offset - b.offset);
+        for (let i = 0; i < fileOffsets[fNum].length; i++) {
+            const current = fileOffsets[fNum][i];
+            const next = fileOffsets[fNum][i + 1];
+            
+            const locations = indexMap.get(current.key);
+            const locObj = locations.find(l => l.fileNum === parseInt(fNum, 10) && l.offset === current.offset);
+            
+            if (locObj) {
+                locObj.endOffset = next ? next.offset : -1;
+            }
+        }
+    }
+    return indexMap;
+}
 
 // Load index once at startup
 const archiveIndex = new Map();
@@ -1505,6 +1623,236 @@ if (cmd === "!ta" && arg) {
 
   }
 
+}
+
+if ((cmd === "!sindexusernames" || cmd === "!su") && (arg || (message.attachments && message.attachments.size > 0))) {
+    let usernamesToSearch = [];
+    const startTime = Date.now();
+
+    // 1. Process File Attachment
+    if (message.attachments && message.attachments.size > 0) {
+        const attachment = message.attachments.first();
+        if (attachment.name.endsWith('.txt')) {
+            try {
+                const response = await axios.get(attachment.url);
+                usernamesToSearch = response.data.split(/\r?\n/).map(u => u.trim()).filter(Boolean);
+            } catch (err) {
+                return message.reply("❌ Failed to parse the attached text file.");
+            }
+        }
+    } 
+    
+    // 2. Process Text Arguments
+    if (arg && usernamesToSearch.length === 0) {
+        usernamesToSearch = arg.split(/[\s,]+/).map(u => u.trim()).filter(Boolean);
+    }
+
+    if (usernamesToSearch.length === 0) {
+        return message.reply("❌ Please provide usernames.");
+    }
+
+    // 3. Load the index map
+    const indexMap = loadUserIndexOptimized();
+    if (indexMap.size === 0) {
+        return message.reply("❌ The index database is empty or could not be loaded.");
+    }
+
+    // 4. Group requested names by chunk files
+    const fileJobs = {}; 
+
+    for (const username of usernamesToSearch) {
+        const lowerUser = username.toLowerCase();
+        if (lowerUser.length < PREFIX_LENGTH) continue; 
+        
+        const prefix = lowerUser.substring(0, PREFIX_LENGTH);
+        const locations = indexMap.get(prefix);
+        if (!locations) continue; 
+
+        for (const loc of locations) {
+            if (!fileJobs[loc.fileNum]) fileJobs[loc.fileNum] = [];
+            fileJobs[loc.fileNum].push({
+                lowerUser,
+                offset: loc.offset,
+                endOffset: loc.endOffset
+            });
+        }
+    }
+
+    const finalResults = new Set(); 
+
+    // 5. Execute file reads sequentially
+    for (const fileNum in fileJobs) {
+        const chunkPath = path.join(USER_CHUNKS_DIR, `${fileNum}.txt`);
+        if (!fs.existsSync(chunkPath)) continue;
+
+        const jobsByOffset = {};
+        for (const job of fileJobs[fileNum]) {
+            if (!jobsByOffset[job.offset]) {
+                jobsByOffset[job.offset] = { endOffset: job.endOffset, targets: new Set() };
+            }
+            jobsByOffset[job.offset].targets.add(job.lowerUser);
+        }
+
+        for (const offset in jobsByOffset) {
+            const startOffset = parseInt(offset, 10);
+            const block = jobsByOffset[offset];
+
+            const foundCases = scanChunkRange(chunkPath, startOffset, block.endOffset, block.targets);
+            for (const exactCase of foundCases) {
+                finalResults.add(exactCase);
+            }
+        }
+    }
+
+    // 6. Return Response Payload
+    if (finalResults.size === 0) {
+        return message.reply("🔍 No matching usernames found in the chunk logs.");
+    }
+
+    const outputArray = Array.from(finalResults);
+    
+    // Sort final output using your standard lowercase uniform logic
+    outputArray.sort((a, b) => {
+        const lowerA = a.toLowerCase();
+        const lowerB = b.toLowerCase();
+        if (lowerA < lowerB) return -1;
+        if (lowerA > lowerB) return 1;
+        if (a < b) return -1;
+        if (a > b) return 1;
+        return 0;
+    });
+
+    const outputText = outputArray.join('\n');
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
+    if (outputText.length < 1900) {
+        return message.reply(`✅ **Matches Found (${duration}s):**\n\`\`\`\n${outputText}\n\`\`\``);
+    } else {
+        const resultsPath = path.join(__dirname, 'matched_usernames.txt');
+        fs.writeFileSync(resultsPath, outputText);
+        
+        await message.reply({
+            content: `✅ Found ${outputArray.length} matches in ${duration} seconds! Results attached:`,
+            files: [resultsPath]
+        });
+        
+        fs.unlinkSync(resultsPath); 
+    }
+}
+
+if ((cmd === "!sindexvideos" || cmd === "!sv") && (arg || (message.attachments && message.attachments.size > 0))) {
+    let usernamesToSearch = [];
+    const startTime = Date.now();
+
+    // 1. Process File Attachment
+    if (message.attachments && message.attachments.size > 0) {
+        const attachment = message.attachments.first();
+        if (attachment.name.endsWith('.txt')) {
+            try {
+                const response = await axios.get(attachment.url);
+                usernamesToSearch = response.data.split(/\r?\n/).map(u => u.trim()).filter(Boolean);
+            } catch (err) {
+                return message.reply("❌ Failed to parse the attached text file.");
+            }
+        }
+    } 
+    
+    // 2. Process Text Arguments
+    if (arg && usernamesToSearch.length === 0) {
+        usernamesToSearch = arg.split(/[\s,]+/).map(u => u.trim()).filter(Boolean);
+    }
+
+    if (usernamesToSearch.length === 0) {
+        return message.reply("❌ Please provide video ids.");
+    }
+
+    // 3. Load the index map
+    const indexMap = loadVideoIndexOptimized();
+    if (indexMap.size === 0) {
+        return message.reply("❌ The index database is empty or could not be loaded.");
+    }
+
+    // 4. Group requested names by chunk files
+    const fileJobs = {}; 
+
+    for (const username of usernamesToSearch) {
+        const lowerUser = username.toLowerCase();
+        if (lowerUser.length < PREFIX_LENGTH) continue; 
+        
+        const prefix = lowerUser.substring(0, PREFIX_LENGTH);
+        const locations = indexMap.get(prefix);
+        if (!locations) continue; 
+
+        for (const loc of locations) {
+            if (!fileJobs[loc.fileNum]) fileJobs[loc.fileNum] = [];
+            fileJobs[loc.fileNum].push({
+                lowerUser,
+                offset: loc.offset,
+                endOffset: loc.endOffset
+            });
+        }
+    }
+
+    const finalResults = new Set(); 
+
+    // 5. Execute file reads sequentially
+    for (const fileNum in fileJobs) {
+        const chunkPath = path.join(VIDEO_CHUNKS_DIR, `${fileNum}.txt`);
+        if (!fs.existsSync(chunkPath)) continue;
+
+        const jobsByOffset = {};
+        for (const job of fileJobs[fileNum]) {
+            if (!jobsByOffset[job.offset]) {
+                jobsByOffset[job.offset] = { endOffset: job.endOffset, targets: new Set() };
+            }
+            jobsByOffset[job.offset].targets.add(job.lowerUser);
+        }
+
+        for (const offset in jobsByOffset) {
+            const startOffset = parseInt(offset, 10);
+            const block = jobsByOffset[offset];
+
+            const foundCases = scanChunkRange(chunkPath, startOffset, block.endOffset, block.targets);
+            for (const exactCase of foundCases) {
+                finalResults.add(exactCase);
+            }
+        }
+    }
+
+    // 6. Return Response Payload
+    if (finalResults.size === 0) {
+        return message.reply("🔍 No matching video ids found in the chunk logs.");
+    }
+
+    const outputArray = Array.from(finalResults);
+    
+    // Sort final output using your standard lowercase uniform logic
+    outputArray.sort((a, b) => {
+        const lowerA = a.toLowerCase();
+        const lowerB = b.toLowerCase();
+        if (lowerA < lowerB) return -1;
+        if (lowerA > lowerB) return 1;
+        if (a < b) return -1;
+        if (a > b) return 1;
+        return 0;
+    });
+
+    const outputText = outputArray.join('\n');
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
+    if (outputText.length < 1900) {
+        return message.reply(`✅ **Matches Found (${duration}s):**\n\`\`\`\n${outputText}\n\`\`\``);
+    } else {
+        const resultsPath = path.join(__dirname, 'matched_video_ids.txt');
+        fs.writeFileSync(resultsPath, outputText);
+        
+        await message.reply({
+            content: `✅ Found ${outputArray.length} matches in ${duration} seconds! Results attached:`,
+            files: [resultsPath]
+        });
+        
+        fs.unlinkSync(resultsPath); 
+    }
 }
 
 if (cmd === "!slashn" && arg) {
