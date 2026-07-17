@@ -1855,9 +1855,11 @@ if ((cmd === "!sindexvideos" || cmd === "!sv") && (arg || (message.attachments &
     }
 }
 
-if (cmd === "!slashn" && arg) {
+if ((cmd === "!slashn" || cmd === "!sn") && arg) {
+    const prefixLength = cmd.length; 
+    
     const converted = message.content
-        .slice("!slashn".length)
+        .slice(prefixLength)
         .trim()
         .replace(/\r?\n/g, "\\n");
 
