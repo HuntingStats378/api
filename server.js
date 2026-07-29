@@ -19,10 +19,17 @@ const incvideoIds = fs
 global.incvideoIdLookup = new Map();
 
 incvideoIds.forEach((id, index) => {
-    global.incvideoIdLookup.set(id.trim(), index + 1);
+    const cleanId = id.trim();
+    const position = index + 1;
+
+    // Map ID -> Position
+    global.incvideoIdLookup.set(cleanId, position);
+    
+    // Map Position (as string) -> ID
+    global.incvideoIdLookup.set(position.toString(), cleanId);
 });
 
-console.log(`Loaded ${global.incvideoIdLookup.size.toLocaleString()} Incremental IDs.`);
+console.log(`Loaded ${incvideoIds.length.toLocaleString()} Incremental IDs (Bi-directional lookup ready).`);
 
 // Prevent crashes on unhandled errors
 process.on("uncaughtException", (err) => {
@@ -1454,22 +1461,23 @@ CLIENT_2005_CLAIMER.on("messageCreate", async (message) => {
   if (!cmd) return;
 
 if (cmd === "!id" && arg) {
-    const incvideoId = arg;
+    const input = arg.trim();
 
-    if (!incvideoId) {
-        return message.reply('Usage: !id <id>');
+    if (!input) {
+        return message.reply('Usage: !id <id or placement number>');
     }
 
-    const position = global.incvideoIdLookup.get(incvideoId);
+    const result = global.incvideoIdLookup.get(input);
 
-    if (!position) {
-        return message.reply('ID not found.');
+    if (!result) {
+        return message.reply('ID or placement number not found.');
     }
 
-    return message.reply(
-        `${position.toLocaleString()}`
-    );
-}  
+    // Format if it's a number (position), otherwise send as-is (ID)
+    const responseText = typeof result === 'number' ? result.toLocaleString() : result;
+    
+    return message.reply(responseText);
+}
 
 if (cmd === "!cdu" && arg) {
     try {
