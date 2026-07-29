@@ -22,14 +22,14 @@ incvideoIds.forEach((id, index) => {
     const cleanId = id.trim();
     const position = index + 1;
 
-    // Map ID -> Position
+    // Maps ID (11 chars) -> Position (Number)
     global.incvideoIdLookup.set(cleanId, position);
     
-    // Map Position (as string) -> ID
+    // Maps Position String ("621355") -> ID
     global.incvideoIdLookup.set(position.toString(), cleanId);
 });
 
-console.log(`Loaded ${incvideoIds.length.toLocaleString()} Incremental IDs (Bi-directional lookup ready).`);
+console.log(`Loaded ${incvideoIds.length.toLocaleString()} Incremental IDs.`);
 
 // Prevent crashes on unhandled errors
 process.on("uncaughtException", (err) => {
@@ -1461,7 +1461,8 @@ CLIENT_2005_CLAIMER.on("messageCreate", async (message) => {
   if (!cmd) return;
 
 if (cmd === "!id" && arg) {
-    const input = arg.trim();
+    // Trim spaces and remove all commas from the input
+    const input = arg.trim().replace(/,/g, '');
 
     if (!input) {
         return message.reply('Usage: !id <id or placement number>');
@@ -1473,7 +1474,7 @@ if (cmd === "!id" && arg) {
         return message.reply('ID or placement number not found.');
     }
 
-    // Format if it's a number (position), otherwise send as-is (ID)
+    // If result is a number, format it with commas for the reply
     const responseText = typeof result === 'number' ? result.toLocaleString() : result;
     
     return message.reply(responseText);
